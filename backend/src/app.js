@@ -1,8 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const verifierToken = require('./middleware/auth');
 const gestionErreurs = require('./middleware/erreurs');
 const authRoutes = require('./routes/auth');
-const verifierToken = require('./middleware/auth');
+const comptesRoutes = require('./routes/comptes');
 
 const app = express();
 
@@ -10,5 +11,6 @@ app.use(cors());
 app.use(express.json());
 app.use(gestionErreurs);
 app.use('/auth', authRoutes);
+app.use('/comptes', comptesRoutes);
 
 module.exports = app;
