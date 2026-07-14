@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const comptesRoutes = require('./routes/comptes');
 const categoriesRoutes = require('./routes/categories');
 const transactionsRoutes = require('./routes/transactions');
+const budgetsRoutes = require('./routes/budgets');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use('/auth', authRoutes);
 app.use('/comptes', comptesRoutes);
 app.use('/categories', categoriesRoutes);
 app.use('/transactions', transactionsRoutes);
+app.use('/budgets', budgetsRoutes);
 
 app.use(gestionErreurs);
 module.exports = app;
