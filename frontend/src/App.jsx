@@ -1,8 +1,15 @@
+import { Routes, Route } from 'react-router-dom';
+import Accueil from './pages/Accueil';
+import Connexion from './pages/Connexion';
+import Inscription from './pages/Inscription';
+
 function App() {
   return (
-    <div>
-      <h1>BudgetHome</h1>
-    </div>
+    <Routes>
+      <Route path="/" element={<Accueil />} />
+      <Route path="/connexion" element={<Connexion />} />
+      <Route path="/inscription" element={<Inscription />} />
+    </Routes>
   );
 }
 
