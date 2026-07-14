@@ -1,24 +1,18 @@
-const gestionnaireErreurs = (err, req, res, next) => {
-    console.error(err.stack);
+function gestionErreurs(err, req, res, next) {
+  console.error(err.stack);
 
-    // Erreur de contrainte PostgreSQL (ex: UNIQUE violated)
-    if (err.code === '23505') {
-        return res.status(409).json({
-            erreur: 'Cette valeur existe déjà en base de données'
-        });
-    }
+  if (err.code === '23505') {
+    return res.status(409).json({ erreur: 'Cette donnée existe déjà.' });
+  }
 
-    // Erreur de clé étrangère
-    if (err.code === '23503') {
-        return res.status(400).json({
-            erreur: 'Référence invalide'
-        });
-    }
+  if (err.code === '23503') {
+    return res.status(409).json({ erreur: 'Impossible de supprimer : des données liées existent encore.' });
+  }
 
-    // Erreur générique
-    res.status(err.status || 500).json({
-        erreur: err.message || 'Erreur serveur interne'
-    });
-};
+  const statut = err.statut || 500;
+  const message = err.message || 'Erreur interne du serveur';
 
-module.exports = gestionnaireErreurs;
+  res.status(statut).json({ erreur: message });
+}
+
+module.exports = gestionErreurs;

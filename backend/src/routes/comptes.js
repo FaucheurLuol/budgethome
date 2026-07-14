@@ -128,4 +128,22 @@ router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
   }
 });
 
+// DELETE /comptes/:id - suppression définitive (uniquement si aucune transaction liée)
+router.delete('/:id', verifierToken, async (req, res, next) => {
+  try {
+    const verifAcces = await pool.query(
+      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (verifAcces.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    await pool.query('DELETE FROM comptes WHERE id = $1', [req.params.id]);
+    res.status(204).send();
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 module.exports = router;
