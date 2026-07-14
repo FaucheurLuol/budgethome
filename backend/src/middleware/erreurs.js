@@ -5,7 +5,7 @@ function gestionErreurs(err, req, res, next) {
     return res.status(409).json({ erreur: 'Cette donnée existe déjà.' });
   }
 
-  if (err.code === '23503') {
+  if (err.code === '23503' || err.code === '23001') {
     return res.status(409).json({ erreur: 'Impossible de supprimer : des données liées existent encore.' });
   }
 

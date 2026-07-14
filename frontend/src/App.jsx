@@ -6,6 +6,7 @@ import Connexion from './pages/Connexion';
 import Inscription from './pages/Inscription';
 import Dashboard from './pages/Dashboard';
 import Comptes from './pages/Comptes';
+import Categories from './pages/Categories';
 
 function App() {
   return (
@@ -27,6 +28,14 @@ function App() {
           element={
             <RouteProtegee>
               <Comptes />
+            </RouteProtegee>
+          }
+        />
+        <Route
+          path="/categories"
+          element={
+            <RouteProtegee>
+              <Categories />
             </RouteProtegee>
           }
         />
