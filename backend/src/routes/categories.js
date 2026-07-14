@@ -20,10 +20,10 @@ router.get('/', verifierToken, async (req, res, next) => {
 // POST /categories - création (racine ou sous-catégorie)
 router.post('/', verifierToken, async (req, res, next) => {
   try {
-    const { nom, parent_id } = req.body;
+    const { nom, parent_id, type_categorie } = req.body;
 
-    if (!nom) {
-      return res.status(400).json({ erreur: 'Le nom est requis.' });
+    if (!nom || !type_categorie) {
+      return res.status(400).json({ erreur: 'Le nom et le type de catégorie sont requis.' });
     }
 
     if (parent_id) {
@@ -37,8 +37,8 @@ router.post('/', verifierToken, async (req, res, next) => {
     }
 
     const resultat = await pool.query(
-      'INSERT INTO categories (nom, parent_id, utilisateur_id) VALUES ($1, $2, $3) RETURNING *',
-      [nom, parent_id || null, req.utilisateur.id]
+      'INSERT INTO categories (nom, parent_id, utilisateur_id, type_categorie) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nom, parent_id || null, req.utilisateur.id, type_categorie]
     );
 
     res.status(201).json(resultat.rows[0]);
@@ -50,7 +50,7 @@ router.post('/', verifierToken, async (req, res, next) => {
 // PUT /categories/:id - modification
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
-    const { nom, parent_id } = req.body;
+    const { nom, parent_id, type_categorie } = req.body;
 
     const verifAcces = await pool.query(
       'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
@@ -61,8 +61,8 @@ router.put('/:id', verifierToken, async (req, res, next) => {
     }
 
     const resultat = await pool.query(
-      'UPDATE categories SET nom = $1, parent_id = $2 WHERE id = $3 RETURNING *',
-      [nom, parent_id || null, req.params.id]
+      'UPDATE categories SET nom = $1, parent_id = $2, type_categorie = $3 WHERE id = $4 RETURNING *',
+      [nom, parent_id || null, type_categorie, req.params.id]
     );
 
     res.json(resultat.rows[0]);

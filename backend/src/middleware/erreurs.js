@@ -13,6 +13,10 @@ function gestionErreurs(err, req, res, next) {
     return res.status(400).json({ erreur: 'Les données envoyées ne respectent pas les règles métier (ex: type de revenu incohérent).' });
   }
 
+  if (err.code === 'P0001') {
+    return res.status(400).json({ erreur: err.message });
+  }
+
   const statut = err.statut || 500;
   const message = err.message || 'Erreur interne du serveur';
 

@@ -30,12 +30,13 @@ CREATE TABLE compte_utilisateurs (
     PRIMARY KEY (compte_id, utilisateur_id)
 );
 
--- 4. Catégories (auto-référencée + propre à chaque utilisateur)
+-- 4. Catégories (auto-référencée + propre à chaque utilisateur + typée dépense/revenu)
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    type_categorie VARCHAR(10) NOT NULL DEFAULT 'depense' CHECK (type_categorie IN ('depense', 'revenu'))
 );
 
 -- 5. Transactions (single-table inheritance : dépense / revenu)
@@ -122,3 +123,41 @@ CREATE TABLE repartitions_communes (
     est_active BOOLEAN NOT NULL DEFAULT FALSE,
     cree_le TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- ============================================================
+-- Triggers de cohérence sur le type de catégorie
+-- ============================================================
+
+-- Une sous-catégorie doit avoir le même type_categorie que son parent
+CREATE OR REPLACE FUNCTION verifier_coherence_type_categorie()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.parent_id IS NOT NULL THEN
+    IF (SELECT type_categorie FROM categories WHERE id = NEW.parent_id) != NEW.type_categorie THEN
+      RAISE EXCEPTION 'Le type de la sous-catégorie doit correspondre au type de sa catégorie parente.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_coherence_type_categorie
+BEFORE INSERT OR UPDATE ON categories
+FOR EACH ROW
+EXECUTE FUNCTION verifier_coherence_type_categorie();
+
+-- Le type_categorie de la catégorie liée doit correspondre au type_transaction
+CREATE OR REPLACE FUNCTION verifier_coherence_categorie_transaction()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (SELECT type_categorie FROM categories WHERE id = NEW.categorie_id) != NEW.type_transaction THEN
+    RAISE EXCEPTION 'Le type de la catégorie ne correspond pas au type de la transaction.';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_coherence_categorie_transaction
+BEFORE INSERT OR UPDATE ON transactions
+FOR EACH ROW
+EXECUTE FUNCTION verifier_coherence_categorie_transaction();
