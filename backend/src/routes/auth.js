@@ -21,7 +21,15 @@ router.post('/inscription', async (req, res, next) => {
       [nom, email, hash]
     );
 
-    res.status(201).json(resultat.rows[0]);
+    const utilisateur = resultat.rows[0];
+
+    const token = jwt.sign(
+      { id: utilisateur.id, nom: utilisateur.nom },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({ token, utilisateur });
   } catch (erreur) {
     next(erreur);
   }
