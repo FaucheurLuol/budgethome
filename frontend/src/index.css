@@ -1,0 +1,25 @@
+:root {
+  --color-bg: #1C2321;
+  --color-surface: #242B28;
+  --color-text: #EDEAE0;
+  --color-text-muted: #9CA69F;
+  --color-accent: #C9A227;
+  --color-accent-soft: #6B8F87;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Work Sans', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+a {
+  color: inherit;
+}
