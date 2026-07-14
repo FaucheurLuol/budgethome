@@ -1,10 +1,24 @@
-function gestionErreurs(err, req, res, next) {
-  console.error(err.stack);
+const gestionnaireErreurs = (err, req, res, next) => {
+    console.error(err.stack);
 
-  const statut = err.statut || 500;
-  const message = err.message || 'Erreur interne du serveur';
+    // Erreur de contrainte PostgreSQL (ex: UNIQUE violated)
+    if (err.code === '23505') {
+        return res.status(409).json({
+            erreur: 'Cette valeur existe déjà en base de données'
+        });
+    }
 
-  res.status(statut).json({ erreur: message });
-}
+    // Erreur de clé étrangère
+    if (err.code === '23503') {
+        return res.status(400).json({
+            erreur: 'Référence invalide'
+        });
+    }
 
-module.exports = gestionErreurs;
+    // Erreur générique
+    res.status(err.status || 500).json({
+        erreur: err.message || 'Erreur serveur interne'
+    });
+};
+
+module.exports = gestionnaireErreurs;
