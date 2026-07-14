@@ -30,7 +30,7 @@ CREATE TABLE compte_utilisateurs (
     PRIMARY KEY (compte_id, utilisateur_id)
 );
 
--- 4. Catégories (auto-référencée pour gérer les sous-catégories à profondeur illimitée)
+-- 4. Catégories (auto-référencée + propre à chaque utilisateur)
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
@@ -107,4 +107,18 @@ CREATE TABLE transactions_simulees (
     montant INTEGER NOT NULL,
     description VARCHAR(255),
     type_transaction VARCHAR(10) NOT NULL CHECK (type_transaction IN ('depense', 'revenu'))
+);
+
+-- 11. Répartitions du compte commun (simulateur manuel, historisé)
+-- Module indépendant : ne lit aucune donnée des tables ci-dessus, sert d'outil
+-- de simulation pour déterminer les virements à faire vers le compte commun.
+CREATE TABLE repartitions_communes (
+    id SERIAL PRIMARY KEY,
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    mois DATE NOT NULL,
+    revenus JSONB NOT NULL,
+    depenses JSONB NOT NULL,
+    resultat JSONB NOT NULL,
+    est_active BOOLEAN NOT NULL DEFAULT FALSE,
+    cree_le TIMESTAMP NOT NULL DEFAULT NOW()
 );
