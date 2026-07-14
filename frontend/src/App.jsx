@@ -5,6 +5,7 @@ import Accueil from './pages/Accueil';
 import Connexion from './pages/Connexion';
 import Inscription from './pages/Inscription';
 import Dashboard from './pages/Dashboard';
+import Comptes from './pages/Comptes';
 
 function App() {
   return (
@@ -18,6 +19,14 @@ function App() {
           element={
             <RouteProtegee>
               <Dashboard />
+            </RouteProtegee>
+          }
+        />
+        <Route
+          path="/comptes"
+          element={
+            <RouteProtegee>
+              <Comptes />
             </RouteProtegee>
           }
         />
