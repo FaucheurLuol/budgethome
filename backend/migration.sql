@@ -50,7 +50,7 @@ CREATE TABLE transactions (
     categorie_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
     compte_id INTEGER NOT NULL REFERENCES comptes(id) ON DELETE RESTRICT,
     type_transaction VARCHAR(10) NOT NULL CHECK (type_transaction IN ('depense', 'revenu')),
-    type_revenu VARCHAR(30) CHECK (type_revenu IN ('salaire', 'prime', 'caf', 'remboursement')),
+    type_revenu VARCHAR(30) CHECK (type_revenu IN ('salaire', 'prime', 'caf', 'remboursement', 'epargne')),
     est_recurrente BOOLEAN NOT NULL DEFAULT FALSE,
 
     CONSTRAINT coherence_type_revenu CHECK (
@@ -85,7 +85,8 @@ CREATE TABLE budget_mensuel (
 CREATE TABLE objectifs_epargne (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
-    montant_cible INTEGER NOT NULL CHECK (montant_cible > 0)
+    montant_cible INTEGER NOT NULL CHECK (montant_cible > 0),
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE
 );
 
 -- 9. Allocations d'épargne (flèchage d'une transaction vers un objectif)
