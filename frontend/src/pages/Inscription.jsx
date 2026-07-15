@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { inscriptionApi } from '../api/auth';
 import { useAuth } from '../context/useAuth';
+import '../style/auth.css';
 
 function Inscription() {
   const [nom, setNom] = useState('');
@@ -63,7 +64,7 @@ function Inscription() {
   }
 
   return (
-    <div>
+    <div className="page-auth">
       <h1>Inscription</h1>
       <p>Créez votre compte pour accéder à BudgetHome.</p>
 
