@@ -1,4 +1,3 @@
-/* Titres génériques des pages connectées */
 .page-app {
   max-width: 1100px;
   margin: 0 auto;
@@ -7,27 +6,28 @@
 
 .page-app h1,
 .page-app h2,
+.page-app h3,
 .page-app .page-sous-titre {
   text-align: center;
 }
 
 .page-app h1 {
   font-family: var(--font-display);
-  font-size: clamp(1.8rem, 2.2vw, 2.4rem);
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
   font-weight: 600;
   margin-bottom: 8px;
 }
 
 .page-app h2 {
   font-family: var(--font-display);
-  font-size: clamp(1.3rem, 1.5vw, 1.6rem);
+  font-size: clamp(0.98rem, 1.5vw, 1.2rem);
   font-weight: 600;
   margin: 32px 0 16px;
 }
 
 .page-sous-titre {
   color: var(--color-text-muted);
-  font-size: 1.2rem;
+  font-size: 0.9rem;
   margin-bottom: 24px;
 }
 
@@ -38,11 +38,10 @@
   border-left: 3px solid #d98b7a;
   border-radius: 8px;
   padding: 12px 16px;
-  font-size: 0.95rem;
+  font-size: 0.71rem;
   margin-bottom: 20px;
 }
 
-/* Formulaire générique (Comptes, Objectifs, Modèles, Répartition...) */
 .formulaire-carte {
   background-color: var(--color-surface);
   border-radius: 12px;
@@ -55,7 +54,7 @@
 }
 
 .formulaire-carte label {
-  font-size: 1rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-accent-soft);
   letter-spacing: 0.05em;
@@ -80,7 +79,7 @@
   border-radius: 8px;
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: 1.15rem;
+  font-size: 0.86rem;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -96,7 +95,7 @@
   align-items: center;
   gap: 8px;
   margin-top: 18px;
-  font-size: 1.1rem;
+  font-size: 0.83rem;
   color: var(--color-text);
   text-transform: none;
   letter-spacing: normal;
@@ -111,7 +110,6 @@
   margin-top: 24px;
 }
 
-/* Grille de cartes (Comptes, Objectifs...) */
 .grille-cartes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -140,17 +138,17 @@
 }
 
 .carte-item strong {
-  font-size: 1.25rem;
+  font-size: 0.94rem;
 }
 
 .carte-item .carte-detail {
   color: var(--color-text-muted);
-  font-size: 1.05rem;
+  font-size: 0.79rem;
 }
 
 .carte-item .carte-montant {
   font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-size: 0.98rem;
   color: var(--color-accent);
   margin-top: 4px;
 }
@@ -161,7 +159,7 @@
   color: var(--color-text-muted);
   border-radius: 6px;
   padding: 8px 14px;
-  font-size: 1rem;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease;
   align-self: flex-start;
@@ -172,7 +170,6 @@
   color: #d98b7a;
 }
 
-/* Arbre de catégories */
 .arbre-categories {
   list-style: none;
   padding: 0;
@@ -187,7 +184,7 @@
 
 .arbre-categories li {
   padding: 10px 4px;
-  font-size: 1.1rem;
+  font-size: 0.83rem;
 }
 
 .noeud-categorie {
@@ -201,4 +198,73 @@
   margin: 4px 0 4px 20px;
   padding-left: 16px;
   border-left: 2px solid rgba(201, 162, 39, 0.2);
+}
+
+.toolbar-generique {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.toolbar-generique select,
+.toolbar-generique input[type="month"] {
+  padding: 11px 14px;
+  background-color: var(--color-surface);
+  border: 1px solid rgba(237, 234, 224, 0.15);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.83rem;
+}
+
+.table-generique {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto 32px;
+  border-collapse: collapse;
+  font-size: 0.79rem;
+}
+
+.table-generique th {
+  background-color: var(--color-surface);
+  text-align: center;
+  padding: 14px 16px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(237, 234, 224, 0.1);
+}
+
+.table-generique td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(237, 234, 224, 0.06);
+  text-align: center;
+}
+
+.table-generique .actions-cell {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.liste-simple {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 32px;
+  max-width: 700px;
+  width: 100%;
+}
+
+.liste-simple li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(237, 234, 224, 0.06);
+  font-size: 0.83rem;
 }

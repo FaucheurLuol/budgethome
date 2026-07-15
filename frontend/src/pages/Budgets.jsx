@@ -6,6 +6,7 @@ import {
   genererBudgetsMensuelsApi, listerSuiviBudgetsApi, modifierBudgetMensuelApi, supprimerBudgetMensuelApi,
 } from '../api/budgets';
 import { aplatirPourSelect } from '../api/organiserCategories';
+import '../style/app.css';
 
 function moisActuelISO() {
   const maintenant = new Date();
@@ -129,12 +130,13 @@ function Budgets() {
   if (chargement) return <p>Chargement...</p>;
 
   return (
-    <div>
+    <div className="page-app">
       <h1>Budgets</h1>
+      <p className="page-sous-titre">Suivez vos budgets par catégorie et anticipez les dépassements.</p>
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
-      <div className="tableur-toolbar">
+      <div className="toolbar-generique">
         <select value={compteSelectionne} onChange={(e) => setCompteSelectionne(e.target.value)}>
           {comptes.map((c) => (
             <option key={c.id} value={c.id}>{c.nom}</option>
@@ -149,7 +151,7 @@ function Budgets() {
       </div>
 
       <h2>Suivi du mois</h2>
-      <table className="tableur">
+      <table className="table-generique">
         <thead>
           <tr>
             <th>Catégorie</th>
@@ -168,9 +170,9 @@ function Budgets() {
               <td className={ligne.reste < 0 ? 'montant-depense' : 'montant-revenu'}>
                 {(ligne.reste / 100).toFixed(2)} €
               </td>
-              <td>
-                <button onClick={() => gererModificationMensuel(ligne.id, ligne.budget)}>Modifier</button>
-                <button onClick={() => gererSuppressionMensuel(ligne.id)}>Supprimer</button>
+              <td className="actions-cell">
+                <button className="bouton-discret" onClick={() => gererModificationMensuel(ligne.id, ligne.budget)}>Modifier</button>
+                <button className="bouton-discret" onClick={() => gererSuppressionMensuel(ligne.id)}>Supprimer</button>
               </td>
             </tr>
           ))}
@@ -178,33 +180,37 @@ function Budgets() {
       </table>
 
       <h2>Budgets par défaut</h2>
-      <ul>
+      <ul className="liste-simple">
         {budgetsDefaut.map((b) => {
           const categorie = categories.find((c) => c.id === b.categorie_id);
           return (
             <li key={b.id}>
-              {categorie?.nom || '—'} — {(b.montant_par_defaut / 100).toFixed(2)} €
-              <button onClick={() => gererSuppressionDefaut(b.id)}>Supprimer</button>
+              <span>{categorie?.nom || '—'} — {(b.montant_par_defaut / 100).toFixed(2)} €</span>
+              <button className="bouton-discret" onClick={() => gererSuppressionDefaut(b.id)}>Supprimer</button>
             </li>
           );
         })}
       </ul>
 
       <h3>Ajouter un budget par défaut</h3>
-      <form onSubmit={gererAjoutDefaut}>
-        <select value={nouvelleCategorieId} onChange={(e) => setNouvelleCategorieId(e.target.value)}>
+      <form className="formulaire-carte" onSubmit={gererAjoutDefaut}>
+        <label htmlFor="categorie_defaut">Catégorie :</label>
+        <select id="categorie_defaut" value={nouvelleCategorieId} onChange={(e) => setNouvelleCategorieId(e.target.value)}>
           <option value="">Choisir une catégorie...</option>
           {categoriesDepense.map((cat) => (
             <option key={cat.id} value={cat.id}>{cat.nomAffiche}</option>
           ))}
         </select>
+
+        <label htmlFor="montant_defaut">Montant (€) :</label>
         <input
+          id="montant_defaut"
           type="number"
           step="0.01"
-          placeholder="Montant (€)"
           value={nouveauMontant}
           onChange={(e) => setNouveauMontant(e.target.value)}
         />
+
         <button className="btn-primary" type="submit">Ajouter</button>
       </form>
     </div>
