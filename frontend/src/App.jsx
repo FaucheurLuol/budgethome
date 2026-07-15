@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Comptes from './pages/Comptes';
 import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
+import Budgets from './pages/Budgets';
 
 function App() {
   return (
@@ -45,6 +46,14 @@ function App() {
           element={
             <RouteProtegee>
               <Transactions />
+            </RouteProtegee>
+          }
+        />
+        <Route
+          path="/budgets"
+          element={
+            <RouteProtegee>
+              <Budgets />
             </RouteProtegee>
           }
         />

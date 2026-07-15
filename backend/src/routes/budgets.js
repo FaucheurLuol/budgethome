@@ -167,6 +167,53 @@ router.post('/mensuel/generer', verifierToken, async (req, res, next) => {
   }
 });
 
+// GET /budgets/mensuel/suivi?compte_id=X&mois=2026-07-01 - budget vs dépenses réelles
+router.get('/mensuel/suivi', verifierToken, async (req, res, next) => {
+  try {
+    const { compte_id, mois } = req.query;
+
+    if (!compte_id || !mois) {
+      return res.status(400).json({ erreur: 'Les paramètres compte_id et mois sont requis.' });
+    }
+
+    const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const finMois = new Date(new Date(mois).getFullYear(), new Date(mois).getMonth() + 1, 1)
+      .toISOString()
+      .slice(0, 10);
+
+    const resultat = await pool.query(
+      `SELECT
+        bm.id, bm.categorie_id, c.nom AS categorie_nom, bm.montant AS budget,
+        COALESCE(SUM(t.montant), 0) AS depense_reelle
+      FROM budget_mensuel bm
+      JOIN categories c ON c.id = bm.categorie_id
+      LEFT JOIN LATERAL categorie_et_descendants(bm.categorie_id) descendants ON TRUE
+      LEFT JOIN transactions t ON t.categorie_id = descendants.id
+        AND t.compte_id = bm.compte_id
+        AND t.type_transaction = 'depense'
+        AND t.date >= $2 AND t.date < $3
+      WHERE bm.compte_id = $1 AND bm.mois = $2
+      GROUP BY bm.id, c.nom
+      ORDER BY c.nom`,
+      [compte_id, mois, finMois]
+    );
+
+    const suivi = resultat.rows.map((ligne) => ({
+      ...ligne,
+      depense_reelle: Number(ligne.depense_reelle),
+      reste: ligne.budget - Number(ligne.depense_reelle),
+    }));
+
+    res.json(suivi);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 // PUT /budgets/mensuel/:id - modification manuelle (montant et/ou catégorie)
 router.put('/mensuel/:id', verifierToken, async (req, res, next) => {
   try {

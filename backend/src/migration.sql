@@ -161,3 +161,20 @@ CREATE TRIGGER trigger_coherence_categorie_transaction
 BEFORE INSERT OR UPDATE ON transactions
 FOR EACH ROW
 EXECUTE FUNCTION verifier_coherence_categorie_transaction();
+
+-- ============================================================
+-- Fonction récursive : une catégorie et toutes ses descendantes
+-- Utilisée pour agréger les dépenses des sous-catégories dans le
+-- suivi budgétaire (un budget posé sur une catégorie parente doit
+-- inclure les dépenses de ses sous-catégories).
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION categorie_et_descendants(categorie_id_arg INTEGER)
+RETURNS TABLE(id INTEGER) AS $$
+  WITH RECURSIVE arbre AS (
+    SELECT id FROM categories WHERE id = categorie_id_arg
+    UNION ALL
+    SELECT c.id FROM categories c JOIN arbre a ON c.parent_id = a.id
+  )
+  SELECT id FROM arbre;
+$$ LANGUAGE sql STABLE;
