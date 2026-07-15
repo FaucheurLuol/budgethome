@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { listerComptesApi, creerCompteApi, archiverCompteApi } from '../api/comptes';
 import { listerUtilisateursApi } from '../api/utilisateurs';
 import { useAuth } from '../context/useAuth';
+import { listerSoldesApi } from '../api/dashboard';
 import '../style/app.css';
 
 const TYPES_COMPTE = ['Compte courant', 'Livret A', 'PEL', 'LDD', 'Action', 'Crypto'];
@@ -10,6 +11,7 @@ function Comptes() {
   const { utilisateur } = useAuth();
   const [comptes, setComptes] = useState([]);
   const [autresUtilisateurs, setAutresUtilisateurs] = useState([]);
+  const [soldes, setSoldes] = useState({});
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
 
@@ -22,12 +24,16 @@ function Comptes() {
   useEffect(() => {
     async function chargerDonnees() {
       try {
-        const [donneesComptes, donneesUtilisateurs] = await Promise.all([
+        const [donneesComptes, donneesUtilisateurs, donneesSoldes] = await Promise.all([
           listerComptesApi(),
           listerUtilisateursApi(),
+          listerSoldesApi(),
         ]);
         setComptes(donneesComptes);
         setAutresUtilisateurs(donneesUtilisateurs.filter((u) => u.id !== utilisateur.id));
+        const soldesParId = {};
+        donneesSoldes.forEach((s) => { soldesParId[s.id] = s.solde_actuel; });
+        setSoldes(soldesParId);
       } catch (err) {
         setErreur(err.message);
       } finally {
@@ -85,7 +91,7 @@ function Comptes() {
               <button className="bouton-discret" onClick={() => gererArchivage(compte.id)}>Archiver</button>
             </div>
             <span className="carte-detail">{compte.type_compte}</span>
-            <span className="carte-montant">{(compte.solde_initial / 100).toFixed(2)} €</span>
+            <span className="carte-montant">{((soldes[compte.id] ?? compte.solde_initial) / 100).toFixed(2)} €</span>
           </li>
         ))}
       </ul>
