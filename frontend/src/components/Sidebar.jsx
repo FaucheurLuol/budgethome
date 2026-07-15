@@ -28,6 +28,9 @@ function Sidebar({ ouverte, fermer }) {
         <NavLink to="/objectifs" onClick={fermer} className="sidebar-lien">
           Objectifs
         </NavLink>
+        <NavLink to="/modeles" onClick={fermer} className="sidebar-lien">
+          Modèles
+        </NavLink>
       </nav>
 
       <div className="sidebar-utilisateur">

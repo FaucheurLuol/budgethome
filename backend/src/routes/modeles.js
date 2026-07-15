@@ -1,0 +1,120 @@
+const express = require('express');
+const pool = require('../db');
+const verifierToken = require('../middleware/auth');
+
+const router = express.Router();
+
+async function verifierAccesCompte(compteId, utilisateurId) {
+  const resultat = await pool.query(
+    'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+    [compteId, utilisateurId]
+  );
+  return resultat.rows.length > 0;
+}
+
+// GET /modeles?compte_id=X - liste les modèles d'un compte
+router.get('/', verifierToken, async (req, res, next) => {
+  try {
+    const { compte_id } = req.query;
+
+    if (!compte_id) {
+      return res.status(400).json({ erreur: 'Le paramètre compte_id est requis.' });
+    }
+
+    const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const resultat = await pool.query(
+      'SELECT * FROM modeles_transactions WHERE compte_id = $1 ORDER BY nom',
+      [compte_id]
+    );
+
+    res.json(resultat.rows);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+// POST /modeles - création
+router.post('/', verifierToken, async (req, res, next) => {
+  try {
+    const { compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement } = req.body;
+
+    if (!compte_id || !nom || !categorie_id || !type_transaction) {
+      return res.status(400).json({ erreur: 'Compte, nom, catégorie et type sont requis.' });
+    }
+
+    const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const verifCategorie = await pool.query(
+      'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
+      [categorie_id, req.utilisateur.id]
+    );
+    if (verifCategorie.rows.length === 0) {
+      return res.status(400).json({ erreur: 'Catégorie introuvable.' });
+    }
+
+    const resultat = await pool.query(
+      `INSERT INTO modeles_transactions (utilisateur_id, compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [req.utilisateur.id, compte_id, nom, categorie_id, montant || null, type_transaction, moyen_paiement || null]
+    );
+
+    res.status(201).json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+// PUT /modeles/:id - modification
+router.put('/:id', verifierToken, async (req, res, next) => {
+  try {
+    const { nom, categorie_id, montant, type_transaction, moyen_paiement } = req.body;
+
+    const existant = await pool.query(
+      'SELECT compte_id FROM modeles_transactions WHERE id = $1 AND utilisateur_id = $2',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (existant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Modèle introuvable.' });
+    }
+
+    const resultat = await pool.query(
+      `UPDATE modeles_transactions
+       SET nom = $1, categorie_id = $2, montant = $3, type_transaction = $4, moyen_paiement = $5
+       WHERE id = $6
+       RETURNING *`,
+      [nom, categorie_id, montant || null, type_transaction, moyen_paiement || null, req.params.id]
+    );
+
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+// DELETE /modeles/:id
+router.delete('/:id', verifierToken, async (req, res, next) => {
+  try {
+    const existant = await pool.query(
+      'SELECT 1 FROM modeles_transactions WHERE id = $1 AND utilisateur_id = $2',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (existant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Modèle introuvable.' });
+    }
+
+    await pool.query('DELETE FROM modeles_transactions WHERE id = $1', [req.params.id]);
+    res.status(204).send();
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+module.exports = router;

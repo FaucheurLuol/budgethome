@@ -51,7 +51,11 @@ CREATE TABLE transactions (
     categorie_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
     compte_id INTEGER NOT NULL REFERENCES comptes(id) ON DELETE RESTRICT,
     type_transaction VARCHAR(10) NOT NULL CHECK (type_transaction IN ('depense', 'revenu')),
-    est_recurrente BOOLEAN NOT NULL DEFAULT FALSE
+    est_recurrente BOOLEAN NOT NULL DEFAULT FALSE,
+    est_simulee BOOLEAN NOT NULL DEFAULT FALSE
+    -- est_simulee : transaction hypothétique (mode simulation). Comptée dans les
+    -- KPI/budgets du mois courant pour anticiper la fin de mois, mais à exclure
+    -- des vues historiques/annuelles (WHERE est_simulee = FALSE).
 );
 
 -- 6. Budget par défaut (règle reconductible, par compte + catégorie)
@@ -92,15 +96,16 @@ CREATE TABLE allocations_epargne (
     -- Le sens (ajout/retrait) est déterminé par le type_transaction de la transaction liée
 );
 
--- 10. Transactions simulées (mode projection, strictement séparé des données réelles)
-CREATE TABLE transactions_simulees (
+-- 10. Modèles de transactions (templates pour saisie rapide des dépenses récurrentes)
+CREATE TABLE modeles_transactions (
     id SERIAL PRIMARY KEY,
+    utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
     compte_id INTEGER NOT NULL REFERENCES comptes(id) ON DELETE CASCADE,
+    nom VARCHAR(100) NOT NULL,
     categorie_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
-    date_prevue DATE NOT NULL,
-    montant INTEGER NOT NULL,
-    description VARCHAR(255),
-    type_transaction VARCHAR(10) NOT NULL CHECK (type_transaction IN ('depense', 'revenu'))
+    montant INTEGER,
+    type_transaction VARCHAR(10) NOT NULL CHECK (type_transaction IN ('depense', 'revenu')),
+    moyen_paiement VARCHAR(30) CHECK (moyen_paiement IN ('CB', 'Virement', 'Especes', 'Prelevement', 'Cheque'))
 );
 
 -- 11. Répartitions du compte commun (simulateur manuel, historisé)
@@ -154,6 +159,22 @@ CREATE TRIGGER trigger_coherence_categorie_transaction
 BEFORE INSERT OR UPDATE ON transactions
 FOR EACH ROW
 EXECUTE FUNCTION verifier_coherence_categorie_transaction();
+
+-- Le type_categorie de la catégorie liée doit correspondre au type_transaction du modèle
+CREATE OR REPLACE FUNCTION verifier_coherence_categorie_modele()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (SELECT type_categorie FROM categories WHERE id = NEW.categorie_id) != NEW.type_transaction THEN
+    RAISE EXCEPTION 'Le type de la catégorie ne correspond pas au type du modèle.';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_coherence_categorie_modele
+BEFORE INSERT OR UPDATE ON modeles_transactions
+FOR EACH ROW
+EXECUTE FUNCTION verifier_coherence_categorie_modele();
 
 -- ============================================================
 -- Fonction récursive : une catégorie et toutes ses descendantes

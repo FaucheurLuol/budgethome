@@ -10,6 +10,7 @@ const budgetsRoutes = require('./routes/budgets');
 const objectifsRoutes = require('./routes/objectifs');
 const repartitionRoutes = require('./routes/repartition');
 const utilisateursRoutes = require('./routes/utilisateurs');
+const modelesRoutes = require('./routes/modeles');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/budgets', budgetsRoutes);
 app.use('/objectifs', objectifsRoutes);
 app.use('/repartition', repartitionRoutes);
 app.use('/utilisateurs', utilisateursRoutes);
+app.use('/modeles', modelesRoutes);
 
 app.use(gestionErreurs);
 module.exports = app;

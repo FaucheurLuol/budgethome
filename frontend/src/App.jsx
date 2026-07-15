@@ -10,6 +10,7 @@ import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
 import Objectifs from './pages/Objectifs';
+import Modeles from './pages/Modeles';
 
 function App() {
   return (
@@ -63,6 +64,14 @@ function App() {
           element={
             <RouteProtegee>
               <Objectifs />
+            </RouteProtegee>
+          }
+        />
+        <Route
+          path="/modeles"
+          element={
+            <RouteProtegee>
+              <Modeles />
             </RouteProtegee>
           }
         />
