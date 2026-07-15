@@ -50,10 +50,6 @@ function Accueil() {
         <p>Gratuit. Pensé pour votre foyer.</p>
         <Link to="/inscription" className="btn-primary">Créer votre espace</Link>
       </div>
-
-      <footer className="landing-footer">
-        © 2026 BudgetHome. Tous droits réservés.
-      </footer>
     </div>
   );
 }

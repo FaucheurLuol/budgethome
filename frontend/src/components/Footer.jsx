@@ -1,6 +1,6 @@
 function Footer() {
   return (
-    <footer className="app-footer">
+    <footer className="landing-footer">
       <p>&copy; 2026 BudgetHome. Tous droits réservés.</p>
     </footer>
   );

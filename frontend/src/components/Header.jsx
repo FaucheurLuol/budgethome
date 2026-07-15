@@ -3,7 +3,7 @@ import '../style/landing.css';
 
 function Header() {
   return (
-    <header>
+    <header className="site-header">
       <nav className="landing-nav">
         <Link to="/" className="nav-logo">Budget<span>Home</span></Link>
         <ul className="nav-liens">
