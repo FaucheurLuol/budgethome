@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { listerCategoriesApi, creerCategorieApi, supprimerCategorieApi } from '../api/categories';
 import { organiserEnArbre } from '../api/organiserCategories';
+import '../style/app.css';
 
 function Categories() {
   const [categoriesPlates, setCategoriesPlates] = useState([]);
@@ -63,8 +64,10 @@ function Categories() {
   function afficherNoeud(noeud) {
     return (
       <li key={noeud.id}>
-        <span>{noeud.nom}</span>
-        <button onClick={() => gererSuppression(noeud.id)}>Supprimer</button>
+        <div className="noeud-categorie">
+          <span>{noeud.nom}</span>
+          <button className="bouton-discret" onClick={() => gererSuppression(noeud.id)}>Supprimer</button>
+        </div>
         {noeud.enfants.length > 0 && (
           <ul>{noeud.enfants.map((enfant) => afficherNoeud(enfant))}</ul>
         )}
@@ -73,8 +76,9 @@ function Categories() {
   }
 
   return (
-    <div>
+    <div className="page-app">
       <h1>Mes catégories</h1>
+      <p className="page-sous-titre">Organisez vos dépenses et revenus par catégorie.</p>
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
@@ -89,7 +93,7 @@ function Categories() {
       </ul>
 
       <h2>Créer une catégorie</h2>
-      <form onSubmit={gererSoumission}>
+      <form className="formulaire-carte" onSubmit={gererSoumission}>
         <label htmlFor="nom">Nom :</label>
         <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
 
