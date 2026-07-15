@@ -182,7 +182,7 @@ router.post('/retrait-epargne', verifierToken, async (req, res, next) => {
 
     const resultatAllocation = await client.query(
       'INSERT INTO allocations_epargne (transaction_id, objectif_id, montant_fleche) VALUES ($1, $2, $3) RETURNING *',
-      [transaction.id, objectif_id, montant_fleche]
+      [transaction.id, objectif_id, montant]
     );
 
     await client.query('COMMIT');
@@ -307,6 +307,117 @@ router.post('/virement-epargne', verifierToken, async (req, res, next) => {
 
     await client.query('COMMIT');
     res.status(201).json({ depense: depense.rows[0], depot: depot.rows[0], allocation });
+  } catch (erreur) {
+    await client.query('ROLLBACK');
+    next(erreur);
+  } finally {
+    client.release();
+  }
+});
+
+// POST /transactions/virement-vers-courant - retrait d'un livret + dépôt automatique sur le compte courant
+router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const { date, montant, description, compte_epargne_id, compte_courant_id, objectif_id } = req.body;
+
+    if (!date || !montant || !compte_epargne_id || !compte_courant_id || !objectif_id) {
+      return res.status(400).json({ erreur: 'Tous les champs, y compris objectif_id, sont requis pour ce virement.' });
+    }
+
+    const accesEpargne = await client.query(
+      `SELECT c.type_compte FROM comptes c
+       JOIN compte_utilisateurs cu ON cu.compte_id = c.id
+       WHERE c.id = $1 AND cu.utilisateur_id = $2`,
+      [compte_epargne_id, req.utilisateur.id]
+    );
+    if (accesEpargne.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte d\'épargne introuvable.' });
+    }
+    if (accesEpargne.rows[0].type_compte === 'Compte courant') {
+      return res.status(400).json({ erreur: 'Le compte source doit être un compte d\'épargne.' });
+    }
+
+    const accesCourant = await client.query(
+      `SELECT c.type_compte FROM comptes c
+       JOIN compte_utilisateurs cu ON cu.compte_id = c.id
+       WHERE c.id = $1 AND cu.utilisateur_id = $2`,
+      [compte_courant_id, req.utilisateur.id]
+    );
+    if (accesCourant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte courant introuvable.' });
+    }
+    if (accesCourant.rows[0].type_compte !== 'Compte courant') {
+      return res.status(400).json({ erreur: 'Le compte destination doit être un compte courant.' });
+    }
+
+    const verifObjectif = await client.query(
+      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND utilisateur_id = $2',
+      [objectif_id, req.utilisateur.id]
+    );
+    if (verifObjectif.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Objectif introuvable.' });
+    }
+
+    // Catégorie "Renflouement" dédiée côté livret (dépense = retrait)
+    const categorieRenflouementLivret = await client.query(
+      `SELECT id FROM categories
+      WHERE utilisateur_id = $1 AND type_categorie = 'depense' AND nom = 'Renflouement'
+      LIMIT 1`,
+      [req.utilisateur.id]
+    );
+    let categorieDepenseId;
+    if (categorieRenflouementLivret.rows.length > 0) {
+      categorieDepenseId = categorieRenflouementLivret.rows[0].id;
+    } else {
+      const nouvelleCategorieDepense = await client.query(
+        `INSERT INTO categories (nom, utilisateur_id, type_categorie) VALUES ('Renflouement', $1, 'depense') RETURNING id`,
+        [req.utilisateur.id]
+      );
+      categorieDepenseId = nouvelleCategorieDepense.rows[0].id;
+    }
+
+    // Catégorie "Renflouement" dédiée côté courant (revenu = arrivée d'argent)
+    const categorieRenflouementCourant = await client.query(
+      `SELECT id FROM categories
+      WHERE utilisateur_id = $1 AND type_categorie = 'revenu' AND nom = 'Renflouement'
+      LIMIT 1`,
+      [req.utilisateur.id]
+    );
+    let categorieRevenuId;
+    if (categorieRenflouementCourant.rows.length > 0) {
+      categorieRevenuId = categorieRenflouementCourant.rows[0].id;
+    } else {
+      const nouvelleCategorieRevenu = await client.query(
+        `INSERT INTO categories (nom, utilisateur_id, type_categorie) VALUES ('Renflouement', $1, 'revenu') RETURNING id`,
+        [req.utilisateur.id]
+      );
+      categorieRevenuId = nouvelleCategorieRevenu.rows[0].id;
+    }
+
+    await client.query('BEGIN');
+
+    const retrait = await client.query(
+      `INSERT INTO transactions (date, montant, description, moyen_paiement, categorie_id, compte_id, type_transaction)
+       VALUES ($1, $2, $3, 'Virement', $4, $5, 'depense')
+       RETURNING *`,
+      [date, montant, description || 'Virement vers compte courant', categorieDepenseId, compte_epargne_id]
+    );
+
+    const depot = await client.query(
+      `INSERT INTO transactions (date, montant, description, moyen_paiement, categorie_id, compte_id, type_transaction)
+       VALUES ($1, $2, $3, 'Virement', $4, $5, 'revenu')
+       RETURNING *`,
+      [date, montant, description || 'Virement depuis épargne', categorieRevenuId, compte_courant_id]
+    );
+
+    const resultatAllocation = await client.query(
+      'INSERT INTO allocations_epargne (transaction_id, objectif_id, montant_fleche) VALUES ($1, $2, $3) RETURNING *',
+      [retrait.rows[0].id, objectif_id, montant]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json({ retrait: retrait.rows[0], depot: depot.rows[0], allocation: resultatAllocation.rows[0] });
   } catch (erreur) {
     await client.query('ROLLBACK');
     next(erreur);

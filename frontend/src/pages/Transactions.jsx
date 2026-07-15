@@ -4,7 +4,7 @@ import { listerCategoriesApi } from '../api/categories';
 import { listerObjectifsApi, creerAllocationApi } from '../api/objectifs';
 import {
   listerTransactionsApi, creerTransactionApi, supprimerTransactionApi,
-  creerRetraitEpargneApi, creerVirementEpargneApi,
+  creerRetraitEpargneApi, creerVirementEpargneApi, creerVirementVersCourantApi,
 } from '../api/transactions';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import '../style/tableur.css';
@@ -23,6 +23,8 @@ function ligneVide() {
     montant_fleche: '',
     est_virement_epargne: false,
     compte_epargne_id: '',
+    est_virement_vers_courant: false,
+    compte_courant_destination_id: '',
   };
 }
 
@@ -83,11 +85,15 @@ function Transactions() {
     chargerTransactions();
   }, [compteSelectionne, chargerTransactions]);
 
+  useEffect(() => {
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation du formulaire à chaque changement de compte pour éviter les effets de bord entre comptes
+  setNouvelleLigne(ligneVide());
+}, [compteSelectionne]);
+
   const compte = comptes.find((c) => c.id === Number(compteSelectionne));
   const estCompteEpargne = compte && compte.type_compte !== 'Compte courant';
-  const comptesEpargneDisponibles = comptes.filter(
-  (c) => c.type_compte !== 'Compte courant' && c.id !== Number(compteSelectionne)
-);
+  const comptesEpargneDisponibles = comptes.filter((c) => c.type_compte !== 'Compte courant' && c.id !== Number(compteSelectionne));
+  const comptesCourantsDisponibles = comptes.filter((c) => c.type_compte === 'Compte courant');
 
   const transactionsAvecSolde = useMemo(() => {
     const triAsc = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
@@ -115,6 +121,11 @@ function Transactions() {
   async function gererAjout() {
     setErreur('');
     try {
+      if (!nouvelleLigne.montant || (!nouvelleLigne.categorie_id && !nouvelleLigne.est_virement_epargne && !nouvelleLigne.est_virement_vers_courant)) {
+        setErreur('Montant et catégorie sont requis.');
+        return;
+      }
+
       const montantCentimes = Math.round(parseFloat(nouvelleLigne.montant) * 100);
 
       if (nouvelleLigne.est_virement_epargne) {
@@ -136,21 +147,40 @@ function Transactions() {
         const estRetraitEpargne = estCompteEpargne && nouvelleLigne.type_transaction === 'depense';
 
         if (estRetraitEpargne) {
-          if (!nouvelleLigne.objectif_id || !nouvelleLigne.montant_fleche) {
+          const flechageValide = nouvelleLigne.est_virement_vers_courant
+            ? true
+            : (nouvelleLigne.objectif_id && nouvelleLigne.montant_fleche);
+
+          if (!nouvelleLigne.objectif_id || !flechageValide) {
             setErreur('Un retrait depuis un compte d\'épargne doit obligatoirement être fléché vers un objectif.');
             return;
           }
 
-          await creerRetraitEpargneApi({
-            date: nouvelleLigne.date,
-            montant: montantCentimes,
-            description: nouvelleLigne.description || null,
-            moyen_paiement: 'Virement',
-            categorie_id: Number(nouvelleLigne.categorie_id),
-            compte_id: Number(compteSelectionne),
-            objectif_id: Number(nouvelleLigne.objectif_id),
-            montant_fleche: Math.round(parseFloat(nouvelleLigne.montant_fleche) * 100),
-          });
+          if (nouvelleLigne.est_virement_vers_courant) {
+            if (!nouvelleLigne.compte_courant_destination_id) {
+              setErreur('Sélectionnez le compte courant de destination.');
+              return;
+            }
+            await creerVirementVersCourantApi({
+              date: nouvelleLigne.date,
+              montant: montantCentimes,
+              description: nouvelleLigne.description || null,
+              compte_epargne_id: Number(compteSelectionne),
+              compte_courant_id: Number(nouvelleLigne.compte_courant_destination_id),
+              objectif_id: Number(nouvelleLigne.objectif_id),
+            });
+          } else {
+            await creerRetraitEpargneApi({
+              date: nouvelleLigne.date,
+              montant: montantCentimes,
+              description: nouvelleLigne.description || null,
+              moyen_paiement: 'Virement',
+              categorie_id: Number(nouvelleLigne.categorie_id),
+              compte_id: Number(compteSelectionne),
+              objectif_id: Number(nouvelleLigne.objectif_id),
+              montant_fleche: Math.round(parseFloat(nouvelleLigne.montant_fleche) * 100),
+            });
+          }
         } else {
           const nouvelleTransaction = await creerTransactionApi({
             date: nouvelleLigne.date,
@@ -193,7 +223,15 @@ function Transactions() {
     setNouvelleLigne((precedent) => ({
       ...precedent,
       [champ]: valeur,
-      ...(champ === 'type_transaction' ? { categorie_id: '', objectif_id: '', montant_fleche: '' } : {}),
+      ...(champ === 'type_transaction' ? {
+        categorie_id: '',
+        objectif_id: '',
+        montant_fleche: '',
+        est_virement_epargne: false,
+        est_virement_vers_courant: false,
+        compte_epargne_id: '',
+        compte_courant_destination_id: '',
+      } : {}),
     }));
   }
 
@@ -254,8 +292,8 @@ function Transactions() {
                   <option value="revenu">Revenu</option>
                 </select>
               </td>
-              {!nouvelleLigne.est_virement_epargne && (
-                <td>
+              <td>
+                {!nouvelleLigne.est_virement_epargne && !nouvelleLigne.est_virement_vers_courant && (
                   <select
                     value={nouvelleLigne.categorie_id}
                     onChange={(e) => majNouvelleLigne('categorie_id', e.target.value)}
@@ -265,9 +303,10 @@ function Transactions() {
                       <option key={cat.id} value={cat.id}>{cat.nomAffiche}</option>
                     ))}
                   </select>
-                </td>
-              )}
-              {nouvelleLigne.est_virement_epargne && <td>Épargne (auto)</td>}
+                )}
+                {nouvelleLigne.est_virement_epargne && <span>Épargne (auto)</span>}
+                {nouvelleLigne.est_virement_vers_courant && <span>Renflouement (auto)</span>}
+              </td>
               <td>
                 <input
                   type="text"
@@ -290,26 +329,15 @@ function Transactions() {
                   )}
 
                   {nouvelleLigne.est_virement_epargne ? (
-                    <>
-                      <select
-                        value={nouvelleLigne.compte_epargne_id}
-                        onChange={(e) => majNouvelleLigne('compte_epargne_id', e.target.value)}
-                      >
-                        <option value="">Quel livret...</option>
-                        {comptesEpargneDisponibles.map((c) => (
-                          <option key={c.id} value={c.id}>{c.nom}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={nouvelleLigne.objectif_id}
-                        onChange={(e) => majNouvelleLigne('objectif_id', e.target.value)}
-                      >
-                        <option value="">Objectif (optionnel)...</option>
-                        {objectifs.map((obj) => (
-                          <option key={obj.id} value={obj.id}>{obj.nom}</option>
-                        ))}
-                      </select>
-                    </>
+                    <select
+                      value={nouvelleLigne.compte_epargne_id}
+                      onChange={(e) => majNouvelleLigne('compte_epargne_id', e.target.value)}
+                    >
+                      <option value="">Quel livret...</option>
+                      {comptesEpargneDisponibles.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nom}</option>
+                      ))}
+                    </select>
                   ) : (
                     <select
                       value={nouvelleLigne.moyen_paiement}
@@ -320,11 +348,46 @@ function Transactions() {
                       ))}
                     </select>
                   )}
+
+                  {nouvelleLigne.est_virement_epargne && (
+                    <select
+                      value={nouvelleLigne.objectif_id}
+                      onChange={(e) => majNouvelleLigne('objectif_id', e.target.value)}
+                    >
+                      <option value="">Objectif (optionnel)...</option>
+                      {objectifs.map((obj) => (
+                        <option key={obj.id} value={obj.id}>{obj.nom}</option>
+                      ))}
+                    </select>
+                  )}
                 </td>
               )}
 
               {estCompteEpargne && (
                 <td>
+                  {nouvelleLigne.type_transaction === 'depense' && (
+                    <label className="checkbox-virement">
+                      <input
+                        type="checkbox"
+                        checked={nouvelleLigne.est_virement_vers_courant}
+                        onChange={(e) => majNouvelleLigne('est_virement_vers_courant', e.target.checked)}
+                      />
+                      Vers le compte courant
+                    </label>
+                  )}
+
+                  {nouvelleLigne.est_virement_vers_courant && (
+                    <select
+                      value={nouvelleLigne.compte_courant_destination_id}
+                      onChange={(e) => majNouvelleLigne('compte_courant_destination_id', e.target.value)}
+                    >
+                      <option value="">Quel compte...</option>
+                      {comptesCourantsDisponibles.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nom}</option>
+                      ))}
+                    </select>
+                  )}
+
                   <select
                     value={nouvelleLigne.objectif_id}
                     onChange={(e) => majNouvelleLigne('objectif_id', e.target.value)}
@@ -336,7 +399,7 @@ function Transactions() {
                       <option key={obj.id} value={obj.id}>{obj.nom}</option>
                     ))}
                   </select>
-                  {nouvelleLigne.objectif_id && (
+                  {nouvelleLigne.objectif_id && !nouvelleLigne.est_virement_vers_courant && (
                     <input
                       type="number"
                       step="0.01"
@@ -345,6 +408,7 @@ function Transactions() {
                       onChange={(e) => majNouvelleLigne('montant_fleche', e.target.value)}
                     />
                   )}
+
                 </td>
               )}
 
@@ -360,7 +424,6 @@ function Transactions() {
                 <button className="btn-ajouter-ligne" onClick={gererAjout}>Ajouter</button>
               </td>
             </tr>
-
             {transactionsAvecSolde.map((t) => (
               <tr key={t.id}>
                 <td>{t.date}</td>

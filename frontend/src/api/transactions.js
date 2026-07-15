@@ -64,3 +64,14 @@ export async function creerVirementEpargneApi(virement) {
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du virement vers l\'épargne.');
   return donnees;
 }
+
+export async function creerVirementVersCourantApi(virement) {
+  const reponse = await fetch(`${API_URL}/transactions/virement-vers-courant`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify(virement),
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du virement vers le compte courant.');
+  return donnees;
+}
