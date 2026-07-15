@@ -84,4 +84,19 @@ router.patch('/:id/activer', verifierToken, async (req, res, next) => {
   }
 });
 
+// DELETE /repartition/:id
+router.delete('/:id', verifierToken, async (req, res, next) => {
+  try {
+    const verif = await pool.query('SELECT 1 FROM repartitions_communes WHERE id = $1', [req.params.id]);
+    if (verif.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Répartition introuvable.' });
+    }
+
+    await pool.query('DELETE FROM repartitions_communes WHERE id = $1', [req.params.id]);
+    res.status(204).send();
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 module.exports = router;

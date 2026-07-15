@@ -30,3 +30,14 @@ export async function activerRepartitionApi(id) {
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de l\'activation.');
   return donnees;
 }
+
+export async function supprimerRepartitionApi(id) {
+  const reponse = await fetch(`${API_URL}/repartition/${id}`, {
+    method: 'DELETE',
+    headers: { ...getAuthHeader() },
+  });
+  if (!reponse.ok) {
+    const donnees = await reponse.json();
+    throw new Error(donnees.erreur || 'Erreur lors de la suppression de la répartition.');
+  }
+}

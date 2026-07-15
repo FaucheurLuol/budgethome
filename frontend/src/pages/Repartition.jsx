@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { calculerRepartitionApi, listerHistoriqueRepartitionApi, activerRepartitionApi } from '../api/repartition';
+import { calculerRepartitionApi, listerHistoriqueRepartitionApi, activerRepartitionApi, supprimerRepartitionApi } from '../api/repartition';
+import { listerUtilisateursApi } from '../api/utilisateurs';
 import '../style/app.css';
 import '../style/tableur.css';
 
@@ -8,7 +9,7 @@ function ligneVide() {
 }
 
 function ligneRevenuVide() {
-  return { personne: '', source: '', montant: '' };
+  return { utilisateur_id: '', source: '', montant: '' };
 }
 
 function moisActuelISO() {
@@ -22,11 +23,26 @@ function Repartition() {
   const [depenses, setDepenses] = useState([ligneVide()]);
   const [resultat, setResultat] = useState(null);
   const [historique, setHistorique] = useState([]);
+  const [utilisateurs, setUtilisateurs] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
 
   useEffect(() => {
-    chargerHistorique();
+    async function chargerInit() {
+      try {
+        const [donneesHistorique, donneesUtilisateurs] = await Promise.all([
+          listerHistoriqueRepartitionApi(),
+          listerUtilisateursApi(),
+        ]);
+        setHistorique(donneesHistorique);
+        setUtilisateurs(donneesUtilisateurs);
+      } catch (err) {
+        setErreur(err.message);
+      } finally {
+        setChargement(false);
+      }
+    }
+    chargerInit();
   }, []);
 
   async function chargerHistorique() {
@@ -37,6 +53,15 @@ function Repartition() {
       setErreur(err.message);
     } finally {
       setChargement(false);
+    }
+  }
+
+  async function gererSuppression(id) {
+    try {
+      await supprimerRepartitionApi(id);
+      setHistorique(historique.filter((h) => h.id !== id));
+    } catch (err) {
+      setErreur(err.message);
     }
   }
 
@@ -55,7 +80,7 @@ function Repartition() {
   function chargerDansFormulaire(item) {
     setMois(item.mois);
     setRevenus(item.revenus.map((r) => ({
-      personne: r.personne,
+      utilisateur_id: r.utilisateur_id ? String(r.utilisateur_id) : '',
       source: r.source || '',
       montant: (r.montant / 100).toFixed(2),
     })));
@@ -67,8 +92,16 @@ function Repartition() {
     setErreur('');
     try {
       const revenusValides = revenus
-        .filter((r) => r.personne && r.montant)
-        .map((r) => ({ personne: r.personne, source: r.source || 'Revenu', montant: Math.round(parseFloat(r.montant) * 100) }));
+        .filter((r) => r.utilisateur_id && r.montant)
+        .map((r) => {
+          const utilisateur = utilisateurs.find((u) => u.id === Number(r.utilisateur_id));
+          return {
+            utilisateur_id: Number(r.utilisateur_id),
+            personne: utilisateur ? utilisateur.nom : 'Inconnu',
+            source: r.source || 'Revenu',
+            montant: Math.round(parseFloat(r.montant) * 100),
+          };
+        });
       const depensesValides = depenses
         .filter((d) => d.nom && d.montant)
         .map((d) => ({ nom: d.nom, montant: Math.round(parseFloat(d.montant) * 100) }));
@@ -122,7 +155,6 @@ function Repartition() {
       )}
 
       <h2>Nouvelle simulation</h2>
-
       <div className="bloc-repartition">
         <label htmlFor="mois" className="label-inline">Mois :</label>
         <input
@@ -136,12 +168,15 @@ function Repartition() {
         <h3>Revenus</h3>
         {revenus.map((r, i) => (
           <div key={i} className="ligne-repartition-nouvelle">
-            <input
-              type="text"
-              placeholder="Personne (ex: Chloé)"
-              value={r.personne}
-              onChange={(e) => majLigne(revenus, setRevenus, i, 'personne', e.target.value)}
-            />
+            <select
+              value={r.utilisateur_id}
+              onChange={(e) => majLigne(revenus, setRevenus, i, 'utilisateur_id', e.target.value)}
+            >
+              <option value="">Personne...</option>
+              {utilisateurs.map((u) => (
+                <option key={u.id} value={u.id}>{u.nom}</option>
+              ))}
+            </select>
             <input
               type="text"
               placeholder="Source (ex: Salaire, CAF)"
@@ -209,6 +244,7 @@ function Repartition() {
             <button className="bouton-discret" onClick={() => gererActivation(h.id)} disabled={h.est_active}>
               {h.est_active ? 'Active' : 'Activer'}
             </button>
+            <button className="bouton-discret" onClick={() => gererSuppression(h.id)}>Supprimer</button>
           </li>
         ))}
       </ul>

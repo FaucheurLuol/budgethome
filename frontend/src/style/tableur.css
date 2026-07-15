@@ -268,12 +268,16 @@
 .liste-historique {
   list-style: none;
   padding: 0;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .liste-historique li {
   display: flex;
   gap: 16px;
   align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
   padding: 10px 0;
   border-bottom: 1px solid rgba(237, 234, 224, 0.06);
 }
