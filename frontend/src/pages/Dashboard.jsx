@@ -7,6 +7,7 @@ import {
   listerSoldesApi, listerEvolutionComptesCourantsApi, listerRepartitionApi, listerBudgetsDuMoisApi,
 } from '../api/dashboard';
 import { listerObjectifsApi } from '../api/objectifs';
+import '../style/app.css';
 import '../style/dashboard.css';
 
 const COULEURS = ['#C9A227', '#6B8F87', '#8fbf8f', '#d98b7a', '#9CA69F', '#7a9bd9'];
@@ -91,8 +92,9 @@ function Dashboard() {
   if (chargement) return <p>Chargement...</p>;
 
   return (
-    <div>
+    <div className="page-tableur">
       <h1>Dashboard</h1>
+      <p className="page-sous-titre" style={{ textAlign: 'center' }}>Vue d'ensemble de votre situation financière.</p>
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
@@ -105,22 +107,24 @@ function Dashboard() {
         ))}
       </div>
 
-      <h2>Évolution des comptes courants</h2>
-      {evolution.map((e) => (
-        <div key={e.compte_id} className="carte-evolution">
-          <h3>{e.nom}</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={e.points.map((p) => ({ ...p, soldeEuros: p.solde / 100 }))}>
-              <XAxis dataKey="mois" stroke="var(--color-text-muted)" fontSize={12} />
-              <YAxis stroke="var(--color-text-muted)" fontSize={12} />
-              <Tooltip formatter={(valeur) => `${valeur.toFixed(2)} €`} />
-              <Line type="monotone" dataKey="soldeEuros" stroke="#C9A227" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      ))}
+      <h2 className="dashboard-h2">Évolution des comptes courants</h2>
+      <div className="dashboard-evolutions">
+        {evolution.map((e) => (
+          <div key={e.compte_id} className="carte-evolution">
+            <h3>{e.nom}</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={e.points.map((p) => ({ ...p, soldeEuros: p.solde / 100 }))}>
+                <XAxis dataKey="mois" stroke="var(--color-text-muted)" fontSize={12} />
+                <YAxis stroke="var(--color-text-muted)" fontSize={12} />
+                <Tooltip formatter={(valeur) => `${valeur.toFixed(2)} €`} />
+                <Line type="monotone" dataKey="soldeEuros" stroke="#C9A227" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ))}
+      </div>
 
-      <h2>Répartition par catégorie</h2>
+      <h2 className="dashboard-h2">Répartition par catégorie</h2>
       <div className="dashboard-camemberts">
         {renduCamembert(revenusMois, 'Revenus — ce mois')}
         {renduCamembert(depensesMois, 'Dépenses — ce mois')}
@@ -128,7 +132,7 @@ function Dashboard() {
         {renduCamembert(depensesAnnee, 'Dépenses — cette année')}
       </div>
 
-      <h2>Objectifs d'épargne</h2>
+      <h2 className="dashboard-h2">Objectifs d'épargne</h2>
       <ul className="dashboard-liste-objectifs">
         {objectifs.map((obj) => {
           const montantActuel = Number(obj.montant_actuel);
@@ -145,8 +149,8 @@ function Dashboard() {
         })}
       </ul>
 
-      <h2>Budgets du mois</h2>
-      <table className="tableur">
+      <h2 className="dashboard-h2">Budgets du mois</h2>
+      <table className="table-generique">
         <thead>
           <tr>
             <th>Compte</th>

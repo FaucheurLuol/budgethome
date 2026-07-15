@@ -1,27 +1,33 @@
 .dashboard-cartes-soldes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
   margin-bottom: 32px;
 }
 
 .carte-solde {
   background-color: var(--color-surface);
-  border-radius: 8px;
-  padding: 16px;
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  border-radius: 12px;
+  padding: 16px 28px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 6px;
+  min-width: 160px;
 }
 
 .carte-solde span {
   color: var(--color-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .carte-solde strong {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.4rem;
   color: var(--color-accent);
 }
 
@@ -73,4 +79,18 @@
   background-color: var(--color-surface);
   padding: 12px 16px;
   border-radius: 8px;
+}
+
+.dashboard-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(0.98rem, 1.5vw, 1.2rem);
+  font-weight: 600;
+  text-align: center;
+  margin: 40px 0 16px;
+}
+
+.dashboard-evolutions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 16px;
 }
