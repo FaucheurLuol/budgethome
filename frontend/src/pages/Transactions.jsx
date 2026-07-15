@@ -8,6 +8,7 @@ import {
 } from '../api/transactions';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import { listerModelesApi } from '../api/modeles';
+import '../style/app.css';
 import '../style/tableur.css';
 
 const MOYENS_PAIEMENT = ['CB', 'Virement', 'Especes', 'Prelevement', 'Cheque'];
@@ -324,12 +325,25 @@ function Transactions() {
   if (chargement) return <p>Chargement...</p>;
 
   return (
-    <div>
+    <div className="page-tableur">
       <h1>Transactions</h1>
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
-      <div className="tableur-toolbar">
+      <div className="carte-solde-principale">
+        <div className="solde-bloc">
+          <span className="solde-label">Solde réel</span>
+          <strong className="solde-valeur">{(soldeReelActuel / 100).toFixed(2)} €</strong>
+        </div>
+        {soldeProjeteActuel !== soldeReelActuel && (
+          <div className="solde-bloc solde-projete">
+            <span className="solde-label">Solde projeté</span>
+            <strong className="solde-valeur">{(soldeProjeteActuel / 100).toFixed(2)} €</strong>
+          </div>
+        )}
+      </div>
+
+      <div className="ligne-actions-secondaires">
         <select
           className="tableur-select-compte"
           value={compteSelectionne}
@@ -340,23 +354,16 @@ function Transactions() {
           ))}
         </select>
 
-        <div className="tableur-solde">
-          Réel : <span>{(soldeReelActuel / 100).toFixed(2)} €</span>
-          {soldeProjeteActuel !== soldeReelActuel && (
-            <> — Projeté : <span>{(soldeProjeteActuel / 100).toFixed(2)} €</span></>
-          )}
-        </div>
+        {modeles.length > 0 && (
+          <div className="rangee-modeles">
+            {modeles.map((m) => (
+              <button key={m.id} className="btn-modele" onClick={() => appliquerModele(m)}>
+                {m.nom}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-
-      {modeles.length > 0 && (
-        <div className="rangee-modeles">
-          {modeles.map((m) => (
-            <button key={m.id} className="btn-modele" onClick={() => appliquerModele(m)}>
-              {m.nom}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className="tableur-wrapper">
         <table className="tableur">
@@ -364,12 +371,13 @@ function Transactions() {
             <tr>
               <th style={{ width: '10%' }}>Date</th>
               <th style={{ width: '9%' }}>Type</th>
-              <th style={{ width: '16%' }}>Catégorie</th>
-              <th style={{ width: '20%' }}>Description</th>
-              {!estCompteEpargne && <th style={{ width: '10%' }}>Moyen</th>}
+              <th style={{ width: '15%' }}>Catégorie</th>
+              <th style={{ width: '18%' }}>Description</th>
+              {!estCompteEpargne && <th style={{ width: '9%' }}>Moyen</th>}
+              {!estCompteEpargne && <th style={{ width: '13%' }}>Virement</th>}
               {estCompteEpargne && <th style={{ width: '16%' }}>Objectif</th>}
-              <th style={{ width: '11%' }}>Montant</th>
-              <th style={{ width: '11%' }}>Solde</th>
+              <th style={{ width: '10%' }}>Montant</th>
+              <th style={{ width: '10%' }}>Solde</th>
               <th style={{ width: '5%' }}></th>
               {!estCompteEpargne && <th style={{ width: '8%' }}>Simuler</th>}
             </tr>
@@ -417,6 +425,23 @@ function Transactions() {
 
               {!estCompteEpargne && (
                 <td>
+                  {nouvelleLigne.est_virement_epargne ? (
+                    <span>Virement (auto)</span>
+                  ) : (
+                    <select
+                      value={nouvelleLigne.moyen_paiement}
+                      onChange={(e) => majNouvelleLigne('moyen_paiement', e.target.value)}
+                    >
+                      {MOYENS_PAIEMENT.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  )}
+                </td>
+              )}
+
+              {!estCompteEpargne && (
+                <td>
                   {nouvelleLigne.type_transaction === 'depense' && (
                     <label className="checkbox-virement">
                       <input
@@ -428,37 +453,27 @@ function Transactions() {
                     </label>
                   )}
 
-                  {nouvelleLigne.est_virement_epargne ? (
-                    <select
-                      value={nouvelleLigne.compte_epargne_id}
-                      onChange={(e) => majNouvelleLigne('compte_epargne_id', e.target.value)}
-                    >
-                      <option value="">Quel livret...</option>
-                      {comptesEpargneDisponibles.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nom}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <select
-                      value={nouvelleLigne.moyen_paiement}
-                      onChange={(e) => majNouvelleLigne('moyen_paiement', e.target.value)}
-                    >
-                      {MOYENS_PAIEMENT.map((m) => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  )}
-
                   {nouvelleLigne.est_virement_epargne && (
-                    <select
-                      value={nouvelleLigne.objectif_id}
-                      onChange={(e) => majNouvelleLigne('objectif_id', e.target.value)}
-                    >
-                      <option value="">Objectif (optionnel)...</option>
-                      {objectifs.map((obj) => (
-                        <option key={obj.id} value={obj.id}>{obj.nom}</option>
-                      ))}
-                    </select>
+                    <>
+                      <select
+                        value={nouvelleLigne.compte_epargne_id}
+                        onChange={(e) => majNouvelleLigne('compte_epargne_id', e.target.value)}
+                      >
+                        <option value="">Quel livret...</option>
+                        {comptesEpargneDisponibles.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nom}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={nouvelleLigne.objectif_id}
+                        onChange={(e) => majNouvelleLigne('objectif_id', e.target.value)}
+                      >
+                        <option value="">Objectif (optionnel)...</option>
+                        {objectifs.map((obj) => (
+                          <option key={obj.id} value={obj.id}>{obj.nom}</option>
+                        ))}
+                      </select>
+                    </>
                   )}
                 </td>
               )}
@@ -508,7 +523,6 @@ function Transactions() {
                       onChange={(e) => majNouvelleLigne('montant_fleche', e.target.value)}
                     />
                   )}
-
                 </td>
               )}
 
@@ -520,16 +534,19 @@ function Transactions() {
                   onChange={(e) => majNouvelleLigne('montant', e.target.value)}
                 />
               </td>
-              <td colSpan={2}>
+              <td>
                 <button className="btn-ajouter-ligne" onClick={gererAjout}>Ajouter</button>
               </td>
+              <td></td>
               {!estCompteEpargne && (
                 <td>
-                  <input
-                    type="checkbox"
-                    checked={nouvelleLigne.est_simulee}
-                    onChange={(e) => majNouvelleLigne('est_simulee', e.target.checked)}
-                  />
+                  <label className="checkbox-virement">
+                    <input
+                      type="checkbox"
+                      checked={nouvelleLigne.est_simulee}
+                      onChange={(e) => majNouvelleLigne('est_simulee', e.target.checked)}
+                    />
+                  </label>
                 </td>
               )}
             </tr>
@@ -540,6 +557,7 @@ function Transactions() {
                 <td>{categories.find((c) => c.id === t.categorie_id)?.nom || '—'}</td>
                 <td className="description-cell">{t.description || '—'}</td>
                 {!estCompteEpargne && <td>{t.moyen_paiement}</td>}
+                {!estCompteEpargne && <td>—</td>}
                 {estCompteEpargne && <td>{t.objectif_nom || '—'}</td>}
                 <td className={t.type_transaction === 'revenu' ? 'montant-revenu' : 'montant-depense'}>
                   {t.type_transaction === 'revenu' ? '+' : '-'}{(t.montant / 100).toFixed(2)} €
