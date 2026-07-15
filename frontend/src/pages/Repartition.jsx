@@ -1,0 +1,214 @@
+import { useState, useEffect } from 'react';
+import { calculerRepartitionApi, listerHistoriqueRepartitionApi, activerRepartitionApi } from '../api/repartition';
+
+function ligneVide() {
+  return { nom: '', montant: '' };
+}
+
+function ligneRevenuVide() {
+  return { personne: '', source: '', montant: '' };
+}
+
+function moisActuelISO() {
+  const maintenant = new Date();
+  return `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function Repartition() {
+  const [mois, setMois] = useState(moisActuelISO());
+  const [revenus, setRevenus] = useState([ligneRevenuVide(), ligneRevenuVide()]);
+  const [depenses, setDepenses] = useState([ligneVide()]);
+  const [resultat, setResultat] = useState(null);
+  const [historique, setHistorique] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState('');
+
+  useEffect(() => {
+    chargerHistorique();
+  }, []);
+
+  async function chargerHistorique() {
+    try {
+      const donnees = await listerHistoriqueRepartitionApi();
+      setHistorique(donnees);
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  function majLigne(liste, setListe, index, champ, valeur) {
+    setListe(liste.map((ligne, i) => (i === index ? { ...ligne, [champ]: valeur } : ligne)));
+  }
+
+  function ajouterLigne(liste, setListe, creerLigneVide = ligneVide) {
+    setListe([...liste, creerLigneVide()]);
+  }
+
+  function retirerLigne(liste, setListe, index) {
+    setListe(liste.filter((_, i) => i !== index));
+  }
+
+  function chargerDansFormulaire(item) {
+    setMois(item.mois);
+    setRevenus(item.revenus.map((r) => ({
+      personne: r.personne,
+      source: r.source || '',
+      montant: (r.montant / 100).toFixed(2),
+    })));
+    setDepenses(item.depenses.map((d) => ({ nom: d.nom, montant: (d.montant / 100).toFixed(2) })));
+    setResultat(null);
+  }
+
+  async function gererCalcul() {
+    setErreur('');
+    try {
+      const revenusValides = revenus
+        .filter((r) => r.personne && r.montant)
+        .map((r) => ({ personne: r.personne, source: r.source || 'Revenu', montant: Math.round(parseFloat(r.montant) * 100) }));
+      const depensesValides = depenses
+        .filter((d) => d.nom && d.montant)
+        .map((d) => ({ nom: d.nom, montant: Math.round(parseFloat(d.montant) * 100) }));
+
+      if (revenusValides.length === 0) {
+        setErreur('Au moins un revenu est nécessaire.');
+        return;
+      }
+      if (depensesValides.length === 0) {
+        setErreur('Au moins une dépense est nécessaire.');
+        return;
+      }
+
+      const donnees = await calculerRepartitionApi(revenusValides, depensesValides, mois);
+      setResultat(donnees);
+      chargerHistorique();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
+  async function gererActivation(id) {
+    try {
+      await activerRepartitionApi(id);
+      chargerHistorique();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
+  const repartitionActive = historique.find((r) => r.est_active);
+
+  if (chargement) return <p>Chargement...</p>;
+
+  return (
+    <div>
+      <h1>Répartition du compte commun</h1>
+      <p className="page-sous-titre">
+        Simulez la répartition des versements vers le compte commun, au prorata de vos revenus.
+      </p>
+
+      {erreur && <p className="message-erreur">{erreur}</p>}
+
+      {repartitionActive && (
+        <div className="carte-repartition-active">
+          <h2>Répartition active — {repartitionActive.mois}</h2>
+          {repartitionActive.resultat.repartition.map((r) => (
+            <p key={r.nom}>{r.nom} : {(r.part_a_verser / 100).toFixed(2)} €</p>
+          ))}
+        </div>
+      )}
+
+      <h2>Nouvelle simulation</h2>
+
+      <label htmlFor="mois">Mois :</label>
+      <input
+        id="mois"
+        type="month"
+        value={mois.slice(0, 7)}
+        onChange={(e) => setMois(`${e.target.value}-01`)}
+      />
+
+      <h3>Revenus</h3>
+      {revenus.map((r, i) => (
+        <div key={i} className="ligne-repartition">
+          <input
+            type="text"
+            placeholder="Personne (ex: Chloé)"
+            value={r.personne}
+            onChange={(e) => majLigne(revenus, setRevenus, i, 'personne', e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Source (ex: Salaire, CAF)"
+            value={r.source}
+            onChange={(e) => majLigne(revenus, setRevenus, i, 'source', e.target.value)}
+          />
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Montant (€)"
+            value={r.montant}
+            onChange={(e) => majLigne(revenus, setRevenus, i, 'montant', e.target.value)}
+          />
+          <button onClick={() => retirerLigne(revenus, setRevenus, i)}>✕</button>
+        </div>
+      ))}
+      <button onClick={() => ajouterLigne(revenus, setRevenus, ligneRevenuVide)}>+ Ajouter un revenu</button>
+
+      <h3>Dépenses communes</h3>
+      {depenses.map((d, i) => (
+        <div key={i} className="ligne-repartition">
+          <input
+            type="text"
+            placeholder="Nom"
+            value={d.nom}
+            onChange={(e) => majLigne(depenses, setDepenses, i, 'nom', e.target.value)}
+          />
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Montant (€)"
+            value={d.montant}
+            onChange={(e) => majLigne(depenses, setDepenses, i, 'montant', e.target.value)}
+          />
+          <button onClick={() => retirerLigne(depenses, setDepenses, i)}>✕</button>
+        </div>
+      ))}
+      <button onClick={() => ajouterLigne(depenses, setDepenses)}>+ Ajouter une dépense</button>
+
+      <div>
+        <button className="btn-primary" onClick={gererCalcul}>Calculer</button>
+      </div>
+
+      {resultat && (
+        <div className="carte-resultat">
+          <h3>Résultat</h3>
+          <p>Revenu total : {(resultat.resultat.revenu_total / 100).toFixed(2)} €</p>
+          <p>Dépenses totales : {(resultat.resultat.depenses_totales / 100).toFixed(2)} €</p>
+          {resultat.resultat.repartition.map((r) => (
+            <p key={r.nom}>{r.nom} : {(r.part_a_verser / 100).toFixed(2)} €</p>
+          ))}
+        </div>
+      )}
+
+      <h2>Historique</h2>
+      <ul className="liste-historique">
+        {historique.map((h) => (
+          <li key={h.id} className={h.est_active ? 'historique-actif' : ''}>
+            <span>{h.mois}</span>
+            {h.resultat.repartition.map((r) => (
+              <span key={r.nom}>{r.nom}: {(r.part_a_verser / 100).toFixed(2)} €</span>
+            ))}
+            <button onClick={() => chargerDansFormulaire(h)}>Charger</button>
+            <button onClick={() => gererActivation(h.id)} disabled={h.est_active}>
+              {h.est_active ? 'Active' : 'Activer'}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default Repartition;

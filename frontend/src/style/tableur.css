@@ -185,3 +185,34 @@
 .btn-modele:hover {
   background-color: rgba(201, 162, 39, 0.12);
 }
+
+.ligne-repartition {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.carte-repartition-active,
+.carte-resultat {
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.liste-historique {
+  list-style: none;
+  padding: 0;
+}
+
+.liste-historique li {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(237, 234, 224, 0.06);
+}
+
+.historique-actif {
+  color: var(--color-accent);
+}
