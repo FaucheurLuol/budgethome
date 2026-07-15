@@ -49,7 +49,7 @@ router.post('/', verifierToken, async (req, res, next) => {
   try {
     const {
       date, montant, description, moyen_paiement,
-      categorie_id, compte_id, type_transaction, est_recurrente
+      categorie_id, compte_id, type_transaction, est_recurrente, est_simulee
     } = req.body;
 
     if (!date || !montant || !moyen_paiement || !categorie_id || !compte_id || !type_transaction) {
@@ -63,10 +63,10 @@ router.post('/', verifierToken, async (req, res, next) => {
 
     const resultat = await pool.query(
       `INSERT INTO transactions
-       (date, montant, description, moyen_paiement, categorie_id, compte_id, type_transaction, est_recurrente)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (date, montant, description, moyen_paiement, categorie_id, compte_id, type_transaction, est_recurrente, est_simulee)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [date, montant, description || null, moyen_paiement, categorie_id, compte_id, type_transaction, est_recurrente || false]
+      [date, montant, description || null, moyen_paiement, categorie_id, compte_id, type_transaction, est_recurrente || false, est_simulee || false]
     );
 
     res.status(201).json(resultat.rows[0]);

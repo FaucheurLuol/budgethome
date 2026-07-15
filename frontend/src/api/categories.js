@@ -42,3 +42,13 @@ export async function supprimerCategorieApi(id) {
     throw new Error(donnees.erreur || 'Erreur lors de la suppression de la catégorie.');
   }
 }
+
+export async function garantirCategorieEpargneApi() {
+  const reponse = await fetch(`${API_URL}/categories/epargne-defaut`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la vérification de la catégorie Épargne.');
+  return donnees;
+}

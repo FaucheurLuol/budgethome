@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { listerComptesApi } from '../api/comptes';
-import { listerCategoriesApi } from '../api/categories';
+import { listerCategoriesApi, garantirCategorieEpargneApi } from '../api/categories';
 import { listerObjectifsApi, creerAllocationApi } from '../api/objectifs';
 import {
   listerTransactionsApi, creerTransactionApi, supprimerTransactionApi,
@@ -25,6 +25,7 @@ function ligneVide() {
     compte_epargne_id: '',
     est_virement_vers_courant: false,
     compte_courant_destination_id: '',
+    est_simulee: false,
   };
 }
 
@@ -100,18 +101,26 @@ function Transactions() {
     const soldeDepart = compte ? compte.solde_initial : 0;
 
     const avecSolde = triAsc.reduce((accumulateur, t) => {
-      const soldePrecedent = accumulateur.length > 0
-        ? accumulateur[accumulateur.length - 1].soldeApres
-        : soldeDepart;
-      const soldeApres = soldePrecedent + (t.type_transaction === 'revenu' ? t.montant : -t.montant);
-      return [...accumulateur, { ...t, soldeApres }];
+      const precedent = accumulateur.length > 0 ? accumulateur[accumulateur.length - 1] : null;
+      const soldeReelPrecedent = precedent ? precedent.soldeReel : soldeDepart;
+      const soldeProjetePrecedent = precedent ? precedent.soldeProjete : soldeDepart;
+      const mouvement = t.type_transaction === 'revenu' ? t.montant : -t.montant;
+
+      const soldeReel = t.est_simulee ? soldeReelPrecedent : soldeReelPrecedent + mouvement;
+      const soldeProjete = soldeProjetePrecedent + mouvement;
+
+      return [...accumulateur, { ...t, soldeReel, soldeProjete }];
     }, []);
 
     return avecSolde.reverse();
   }, [transactions, compte]);
 
-  const soldeActuel = transactionsAvecSolde.length > 0
-    ? transactionsAvecSolde[0].soldeApres
+  const soldeReelActuel = transactionsAvecSolde.length > 0
+    ? transactionsAvecSolde[0].soldeReel
+    : (compte ? compte.solde_initial : 0);
+
+  const soldeProjeteActuel = transactionsAvecSolde.length > 0
+    ? transactionsAvecSolde[0].soldeProjete
     : (compte ? compte.solde_initial : 0);
 
   const categoriesFiltrees = aplatirPourSelect(
@@ -127,6 +136,38 @@ function Transactions() {
       }
 
       const montantCentimes = Math.round(parseFloat(nouvelleLigne.montant) * 100);
+
+      // Une simulation ne déclenche JAMAIS les automatisations de virement,
+      // même si les cases correspondantes sont cochées.
+      if (nouvelleLigne.est_simulee) {
+        if (!nouvelleLigne.categorie_id && !nouvelleLigne.est_virement_epargne) {
+          setErreur('Une catégorie est requise pour simuler une transaction.');
+          return;
+        }
+
+        let categorieAUtiliser = nouvelleLigne.categorie_id ? Number(nouvelleLigne.categorie_id) : null;
+
+        if (nouvelleLigne.est_virement_epargne && !categorieAUtiliser) {
+          const { depense } = await garantirCategorieEpargneApi();
+          categorieAUtiliser = depense.id;
+          await rechargerCategories();
+        }
+
+        await creerTransactionApi({
+          date: nouvelleLigne.date,
+          montant: montantCentimes,
+          description: nouvelleLigne.description || null,
+          moyen_paiement: 'Virement',
+          categorie_id: categorieAUtiliser,
+          compte_id: Number(compteSelectionne),
+          type_transaction: nouvelleLigne.type_transaction,
+          est_simulee: true,
+        });
+
+        setNouvelleLigne(ligneVide());
+        chargerTransactions();
+        return;
+      }
 
       if (nouvelleLigne.est_virement_epargne) {
         if (!nouvelleLigne.compte_epargne_id) {
@@ -255,7 +296,10 @@ function Transactions() {
         </select>
 
         <div className="tableur-solde">
-          Solde : <span>{(soldeActuel / 100).toFixed(2)} €</span>
+          Réel : <span>{(soldeReelActuel / 100).toFixed(2)} €</span>
+          {soldeProjeteActuel !== soldeReelActuel && (
+            <> — Projeté : <span>{(soldeProjeteActuel / 100).toFixed(2)} €</span></>
+          )}
         </div>
       </div>
 
@@ -272,6 +316,7 @@ function Transactions() {
               <th style={{ width: '11%' }}>Montant</th>
               <th style={{ width: '11%' }}>Solde</th>
               <th style={{ width: '5%' }}></th>
+              {!estCompteEpargne && <th style={{ width: '8%' }}>Simuler</th>}
             </tr>
           </thead>
           <tbody>
@@ -423,9 +468,18 @@ function Transactions() {
               <td colSpan={2}>
                 <button className="btn-ajouter-ligne" onClick={gererAjout}>Ajouter</button>
               </td>
+              {!estCompteEpargne && (
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={nouvelleLigne.est_simulee}
+                    onChange={(e) => majNouvelleLigne('est_simulee', e.target.checked)}
+                  />
+                </td>
+              )}
             </tr>
             {transactionsAvecSolde.map((t) => (
-              <tr key={t.id}>
+              <tr key={t.id} className={t.est_simulee ? 'ligne-simulee' : ''}>
                 <td>{t.date}</td>
                 <td>{t.type_transaction === 'revenu' ? 'Revenu' : 'Dépense'}</td>
                 <td>{categories.find((c) => c.id === t.categorie_id)?.nom || '—'}</td>
@@ -435,10 +489,11 @@ function Transactions() {
                 <td className={t.type_transaction === 'revenu' ? 'montant-revenu' : 'montant-depense'}>
                   {t.type_transaction === 'revenu' ? '+' : '-'}{(t.montant / 100).toFixed(2)} €
                 </td>
-                <td className="solde-cell">{(t.soldeApres / 100).toFixed(2)} €</td>
+                <td className="solde-cell">{(t.soldeReel / 100).toFixed(2)} €</td>
                 <td>
                   <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)}>✕</button>
                 </td>
+                {!estCompteEpargne && <td>{t.est_simulee ? '✓' : ''}</td>}
               </tr>
             ))}
           </tbody>

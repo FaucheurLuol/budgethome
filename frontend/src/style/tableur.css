@@ -158,3 +158,8 @@
 .checkbox-virement {
   margin-bottom: 8px;
 }
+
+.ligne-simulee {
+  font-style: italic;
+  opacity: 0.6;
+}

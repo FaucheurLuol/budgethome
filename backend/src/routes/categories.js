@@ -89,4 +89,33 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
   }
 });
 
+// POST /categories/epargne-defaut - garantit l'existence des catégories "Épargne" (dépense + revenu)
+router.post('/epargne-defaut', verifierToken, async (req, res, next) => {
+  try {
+    async function trouverOuCreer(typeCategorie) {
+      const existante = await pool.query(
+        'SELECT * FROM categories WHERE utilisateur_id = $1 AND type_categorie = $2 AND nom = $3',
+        [req.utilisateur.id, typeCategorie, 'Épargne']
+      );
+      if (existante.rows.length > 0) {
+        return existante.rows[0];
+      }
+      const creee = await pool.query(
+        'INSERT INTO categories (nom, utilisateur_id, type_categorie) VALUES ($1, $2, $3) RETURNING *',
+        ['Épargne', req.utilisateur.id, typeCategorie]
+      );
+      return creee.rows[0];
+    }
+
+    const [depense, revenu] = await Promise.all([
+      trouverOuCreer('depense'),
+      trouverOuCreer('revenu'),
+    ]);
+
+    res.json({ depense, revenu });
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 module.exports = router;
