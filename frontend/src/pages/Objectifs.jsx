@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { listerObjectifsApi, creerObjectifApi, supprimerObjectifApi } from '../api/objectifs';
+import '../style/app.css';
 import '../style/tableur.css';
 
 function Objectifs() {
@@ -57,12 +58,13 @@ function Objectifs() {
   if (chargement) return <p>Chargement...</p>;
 
   return (
-    <div>
+    <div className="page-app">
       <h1>Objectifs d'épargne</h1>
+      <p className="page-sous-titre">Suivez la progression de votre épargne vers vos projets.</p>
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
-      <ul className="liste-objectifs">
+      <ul className="grille-objectifs">
         {objectifs.map((obj) => {
           const montantActuel = Number(obj.montant_actuel);
           const pourcentage = Math.min(100, Math.max(0, (montantActuel / obj.montant_cible) * 100));
@@ -70,7 +72,7 @@ function Objectifs() {
             <li key={obj.id} className="carte-objectif">
               <div className="objectif-entete">
                 <strong>{obj.nom}</strong>
-                <button onClick={() => gererSuppression(obj.id)}>Supprimer</button>
+                <button className="bouton-discret" onClick={() => gererSuppression(obj.id)}>Supprimer</button>
               </div>
               <div className="objectif-progression">
                 <div className="objectif-barre-fond">
@@ -87,7 +89,7 @@ function Objectifs() {
       </ul>
 
       <h2>Créer un objectif</h2>
-      <form onSubmit={gererSoumission}>
+      <form className="formulaire-carte" onSubmit={gererSoumission}>
         <label htmlFor="nom">Nom :</label>
         <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
 
