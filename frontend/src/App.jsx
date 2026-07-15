@@ -9,6 +9,7 @@ import Comptes from './pages/Comptes';
 import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
+import Objectifs from './pages/Objectifs';
 
 function App() {
   return (
@@ -54,6 +55,14 @@ function App() {
           element={
             <RouteProtegee>
               <Budgets />
+            </RouteProtegee>
+          }
+        />
+        <Route
+          path="/objectifs"
+          element={
+            <RouteProtegee>
+              <Objectifs />
             </RouteProtegee>
           }
         />
