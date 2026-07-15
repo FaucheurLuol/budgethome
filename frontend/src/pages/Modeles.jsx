@@ -4,6 +4,7 @@ import { listerCategoriesApi } from '../api/categories';
 import { listerModelesApi, creerModeleApi, supprimerModeleApi } from '../api/modeles';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import { listerObjectifsApi } from '../api/objectifs';
+import '../style/app.css';
 
 const MOYENS_PAIEMENT = ['CB', 'Virement', 'Especes', 'Prelevement', 'Cheque'];
 
@@ -128,7 +129,7 @@ function Modeles() {
   if (chargement) return <p>Chargement...</p>;
 
   return (
-    <div>
+    <div className="page-app">
       <h1>Modèles de transactions</h1>
       <p className="page-sous-titre">
         Créez des raccourcis pour vos dépenses et revenus récurrents (loyer, charges, courses...).
@@ -136,7 +137,7 @@ function Modeles() {
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
-      <div className="tableur-toolbar">
+      <div className="toolbar-generique">
         <select value={compteSelectionne} onChange={(e) => setCompteSelectionne(e.target.value)}>
           {comptes.map((c) => (
             <option key={c.id} value={c.id}>{c.nom}</option>
@@ -144,29 +145,29 @@ function Modeles() {
         </select>
       </div>
 
-      <ul className="liste-modeles">
+      <ul className="grille-cartes">
         {modeles.map((m) => (
-          <li key={m.id} className="carte-modele">
-            <div>
+          <li key={m.id} className="carte-item">
+            <div className="carte-item-entete">
               <strong>{m.nom}</strong>
-              {m.est_virement_epargne ? (
-                <span>Vers l'épargne → {comptes.find((c) => c.id === m.compte_epargne_id)?.nom || '—'}</span>
-              ) : (
-                <span>{categories.find((c) => c.id === m.categorie_id)?.nom || '—'}</span>
-              )}
-              {m.montant && <span>{(m.montant / 100).toFixed(2)} €</span>}
+              <button className="bouton-discret" onClick={() => gererSuppression(m.id)}>Supprimer</button>
             </div>
-            <button onClick={() => gererSuppression(m.id)}>Supprimer</button>
+            {m.est_virement_epargne ? (
+              <span className="carte-detail">Vers l'épargne → {comptes.find((c) => c.id === m.compte_epargne_id)?.nom || '—'}</span>
+            ) : (
+              <span className="carte-detail">{categories.find((c) => c.id === m.categorie_id)?.nom || '—'}</span>
+            )}
+            {m.montant && <span className="carte-montant">{(m.montant / 100).toFixed(2)} €</span>}
           </li>
         ))}
       </ul>
 
       <h2>Créer un modèle</h2>
-      <form onSubmit={gererSoumission}>
+      <form className="formulaire-carte" onSubmit={gererSoumission}>
         <label htmlFor="nom">Nom :</label>
         <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
 
-        <label>
+        <label className="champ-checkbox">
           <input
             type="checkbox"
             checked={estVirementEpargne}
