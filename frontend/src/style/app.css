@@ -1,0 +1,173 @@
+/* Titres génériques des pages connectées */
+.page-app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 48px;
+}
+
+.page-app h1,
+.page-app h2,
+.page-app .page-sous-titre {
+  text-align: center;
+}
+
+.page-app h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 2.2vw, 2.4rem);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.page-app h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 1.5vw, 1.6rem);
+  font-weight: 600;
+  margin: 32px 0 16px;
+}
+
+.page-sous-titre {
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  margin-bottom: 24px;
+}
+
+.message-erreur {
+  background-color: rgba(217, 139, 122, 0.1);
+  color: #d98b7a;
+  border: 1px solid rgba(217, 139, 122, 0.3);
+  border-left: 3px solid #d98b7a;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+}
+
+/* Formulaire générique (Comptes, Objectifs, Modèles, Répartition...) */
+.formulaire-carte {
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.formulaire-carte label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-accent-soft);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  margin-top: 18px;
+}
+
+.formulaire-carte label:first-of-type {
+  margin-top: 0;
+}
+
+.formulaire-carte input[type="text"],
+.formulaire-carte input[type="number"],
+.formulaire-carte input[type="email"],
+.formulaire-carte input[type="password"],
+.formulaire-carte select {
+  width: 100%;
+  padding: 11px 14px;
+  background-color: var(--color-bg);
+  border: 1px solid rgba(237, 234, 224, 0.15);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.formulaire-carte input:focus,
+.formulaire-carte select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.15);
+}
+
+.formulaire-carte .champ-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+}
+
+.formulaire-carte .champ-checkbox input {
+  width: auto;
+}
+
+.formulaire-carte button {
+  margin-top: 24px;
+}
+
+/* Grille de cartes (Comptes, Objectifs...) */
+.grille-cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 0 auto 32px;
+  list-style: none;
+  padding: 0;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.carte-item {
+  background-color: var(--color-surface);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.carte-item-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.carte-item strong {
+  font-size: 1.05rem;
+}
+
+.carte-item .carte-detail {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.carte-item .carte-montant {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--color-accent);
+  margin-top: 4px;
+}
+
+.bouton-discret {
+  background: none;
+  border: 1px solid rgba(237, 234, 224, 0.15);
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  align-self: flex-start;
+}
+
+.bouton-discret:hover {
+  border-color: #d98b7a;
+  color: #d98b7a;
+}

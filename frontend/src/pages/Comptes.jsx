@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { listerComptesApi, creerCompteApi, archiverCompteApi } from '../api/comptes';
 import { listerUtilisateursApi } from '../api/utilisateurs';
 import { useAuth } from '../context/useAuth';
+import '../style/app.css';
 
 const TYPES_COMPTE = ['Compte courant', 'Livret A', 'PEL', 'LDD', 'Action', 'Crypto'];
 
@@ -70,26 +71,27 @@ function Comptes() {
   if (chargement) return <p>Chargement...</p>;
 
   return (
-    <div>
+    <div className="page-app">
       <h1>Mes comptes</h1>
+      <p className="page-sous-titre">Gérez vos comptes personnels et partagés.</p>
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
-      <ul className="liste-comptes">
+      <ul className="grille-cartes">
         {comptes.map((compte) => (
-          <li key={compte.id} className="carte-compte">
-            <div>
+          <li key={compte.id} className="carte-item">
+            <div className="carte-item-entete">
               <strong>{compte.nom}</strong>
-              <span>{compte.type_compte}</span>
-              <span>{(compte.solde_initial / 100).toFixed(2)} €</span>
+              <button className="bouton-discret" onClick={() => gererArchivage(compte.id)}>Archiver</button>
             </div>
-            <button onClick={() => gererArchivage(compte.id)}>Archiver</button>
+            <span className="carte-detail">{compte.type_compte}</span>
+            <span className="carte-montant">{(compte.solde_initial / 100).toFixed(2)} €</span>
           </li>
         ))}
       </ul>
 
       <h2>Créer un compte</h2>
-      <form onSubmit={gererSoumission}>
+      <form className="formulaire-carte" onSubmit={gererSoumission}>
         <label htmlFor="nom">Nom :</label>
         <input
           id="nom"
@@ -116,7 +118,7 @@ function Comptes() {
           required
         />
 
-        <label>
+        <label className="champ-checkbox">
           <input
             type="checkbox"
             checked={partage}
