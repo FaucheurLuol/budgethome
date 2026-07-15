@@ -9,10 +9,6 @@ function gestionErreurs(err, req, res, next) {
     return res.status(409).json({ erreur: 'Impossible de supprimer : des données liées existent encore.' });
   }
 
-  if (err.code === '23514') {
-    return res.status(400).json({ erreur: 'Les données envoyées ne respectent pas les règles métier (ex: type de revenu incohérent).' });
-  }
-
   if (err.code === 'P0001') {
     return res.status(400).json({ erreur: err.message });
   }

@@ -51,14 +51,7 @@ CREATE TABLE transactions (
     categorie_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
     compte_id INTEGER NOT NULL REFERENCES comptes(id) ON DELETE RESTRICT,
     type_transaction VARCHAR(10) NOT NULL CHECK (type_transaction IN ('depense', 'revenu')),
-    type_revenu VARCHAR(30) CHECK (type_revenu IN ('salaire', 'prime', 'caf', 'remboursement', 'epargne')),
-    est_recurrente BOOLEAN NOT NULL DEFAULT FALSE,
-
-    CONSTRAINT coherence_type_revenu CHECK (
-        (type_transaction = 'revenu' AND type_revenu IS NOT NULL)
-        OR
-        (type_transaction = 'depense' AND type_revenu IS NULL)
-    )
+    est_recurrente BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- 6. Budget par défaut (règle reconductible, par compte + catégorie)
