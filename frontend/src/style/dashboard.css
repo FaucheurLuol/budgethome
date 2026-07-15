@@ -94,3 +94,19 @@
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 16px;
 }
+
+.toolbar-camemberts {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
+.toolbar-camemberts select {
+  padding: 11px 14px;
+  background-color: var(--color-surface);
+  border: 1px solid rgba(237, 234, 224, 0.15);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+}

@@ -78,10 +78,10 @@ router.get('/evolution-comptes-courants', verifierToken, async (req, res, next) 
   }
 });
 
-// GET /dashboard/repartition?type=depense&periode=mois - répartition par catégorie
+// GET /dashboard/repartition?type=depense&periode=mois&compte_id=X (optionnel)
 router.get('/repartition', verifierToken, async (req, res, next) => {
   try {
-    const { type, periode } = req.query;
+    const { type, periode, compte_id } = req.query;
 
     if (!['depense', 'revenu'].includes(type) || !['mois', 'annee'].includes(periode)) {
       return res.status(400).json({ erreur: 'Paramètres type/periode invalides.' });
@@ -95,16 +95,23 @@ router.get('/repartition', verifierToken, async (req, res, next) => {
       dateDebut = new Date(maintenant.getFullYear(), 0, 1).toISOString().slice(0, 10);
     }
 
+    const params = [req.utilisateur.id, type, dateDebut];
+    let filtreCompte = '';
+    if (compte_id) {
+      filtreCompte = 'AND t.compte_id = $4';
+      params.push(compte_id);
+    }
+
     const resultat = await pool.query(
       `SELECT c.nom AS categorie, SUM(t.montant) AS total
        FROM transactions t
        JOIN categories c ON c.id = t.categorie_id
        JOIN compte_utilisateurs cu ON cu.compte_id = t.compte_id
        WHERE cu.utilisateur_id = $1 AND t.type_transaction = $2
-         AND t.est_simulee = FALSE AND t.date >= $3
+         AND t.est_simulee = FALSE AND t.date >= $3 ${filtreCompte}
        GROUP BY c.nom
        ORDER BY total DESC`,
-      [req.utilisateur.id, type, dateDebut]
+      params
     );
 
     res.json(resultat.rows.map((r) => ({ categorie: r.categorie, total: Number(r.total) })));

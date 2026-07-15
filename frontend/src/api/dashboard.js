@@ -17,8 +17,10 @@ export async function listerEvolutionComptesCourantsApi(mois = 12) {
   return donnees;
 }
 
-export async function listerRepartitionApi(type, periode) {
-  const reponse = await fetch(`${API_URL}/dashboard/repartition?type=${type}&periode=${periode}`, {
+export async function listerRepartitionApi(type, periode, compteId = null) {
+  const params = new URLSearchParams({ type, periode });
+  if (compteId) params.append('compte_id', compteId);
+  const reponse = await fetch(`${API_URL}/dashboard/repartition?${params.toString()}`, {
     headers: { ...getAuthHeader() },
   });
   const donnees = await reponse.json();

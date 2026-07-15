@@ -23,6 +23,32 @@ function Dashboard() {
   const [budgets, setBudgets] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
+  const [compteFiltre, setCompteFiltre] = useState('');
+
+  async function chargerCamemberts(compteId) {
+    try {
+      const [donneesRevenusMois, donneesDepensesMois, donneesRevenusAnnee, donneesDepensesAnnee] = await Promise.all([
+        listerRepartitionApi('revenu', 'mois', compteId || null),
+        listerRepartitionApi('depense', 'mois', compteId || null),
+        listerRepartitionApi('revenu', 'annee', compteId || null),
+        listerRepartitionApi('depense', 'annee', compteId || null),
+      ]);
+      setRevenusMois(donneesRevenusMois);
+      setDepensesMois(donneesDepensesMois);
+      setRevenusAnnee(donneesRevenusAnnee);
+      setDepensesAnnee(donneesDepensesAnnee);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
+
+  useEffect(() => {
+  if (chargement) return;
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- rechargement des camemberts déclenché par le changement de filtre compte
+  chargerCamemberts(compteFiltre);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [compteFiltre]);
 
   useEffect(() => {
     async function chargerTout() {
@@ -125,6 +151,14 @@ function Dashboard() {
       </div>
 
       <h2 className="dashboard-h2">Répartition par catégorie</h2>
+      <div className="toolbar-camemberts">
+        <select value={compteFiltre} onChange={(e) => setCompteFiltre(e.target.value)}>
+          <option value="">Tous les comptes</option>
+          {soldes.map((c) => (
+            <option key={c.id} value={c.id}>{c.nom}</option>
+          ))}
+        </select>
+      </div>
       <div className="dashboard-camemberts">
         {renduCamembert(revenusMois, 'Revenus — ce mois')}
         {renduCamembert(depensesMois, 'Dépenses — ce mois')}
