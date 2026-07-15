@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { connexionApi } from '../api/auth';
 import { useAuth } from '../context/useAuth';
+import '../style/auth.css';
 
 function Connexion() {
   const [email, setEmail] = useState('');
@@ -24,35 +25,38 @@ function Connexion() {
   }
 
   return (
-    <div>
+    <div className="page-auth">
       <h1>Connexion</h1>
+      <p>Retrouvez votre espace BudgetHome.</p>
 
-      {erreur && <p className="message-erreur">{erreur}</p>}
+      {erreur && (
+        <div className="form-message error">
+          <p>{erreur}</p>
+        </div>
+      )}
 
       <form onSubmit={gererSoumission}>
-        <div>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
+        <label htmlFor="email">Email :</label>
+        <input
+          className="input-field"
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
-        <div>
-          <label htmlFor="mot_de_passe">Mot de passe</label>
-          <input
-            id="mot_de_passe"
-            type="password"
-            value={motDePasse}
-            onChange={(e) => setMotDePasse(e.target.value)}
-            required
-          />
-        </div>
+        <label htmlFor="mot_de_passe">Mot de passe :</label>
+        <input
+          className="input-field"
+          id="mot_de_passe"
+          type="password"
+          value={motDePasse}
+          onChange={(e) => setMotDePasse(e.target.value)}
+          required
+        />
 
-        <button type="submit">Se connecter</button>
+        <button className="btn" type="submit">Se connecter</button>
       </form>
 
       <p>Pas encore de compte ? <Link to="/inscription">S'inscrire</Link></p>
