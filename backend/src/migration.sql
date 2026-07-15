@@ -102,10 +102,15 @@ CREATE TABLE modeles_transactions (
     utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
     compte_id INTEGER NOT NULL REFERENCES comptes(id) ON DELETE CASCADE,
     nom VARCHAR(100) NOT NULL,
-    categorie_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+    categorie_id INTEGER REFERENCES categories(id) ON DELETE RESTRICT,
     montant INTEGER,
     type_transaction VARCHAR(10) NOT NULL CHECK (type_transaction IN ('depense', 'revenu')),
-    moyen_paiement VARCHAR(30) CHECK (moyen_paiement IN ('CB', 'Virement', 'Especes', 'Prelevement', 'Cheque'))
+    moyen_paiement VARCHAR(30) CHECK (moyen_paiement IN ('CB', 'Virement', 'Especes', 'Prelevement', 'Cheque')),
+    -- Virement automatisé vers l'épargne : categorie_id devient inutile (la vraie
+    -- transaction utilisera la catégorie "Épargne (auto)"), remplacé par ces champs.
+    est_virement_epargne BOOLEAN NOT NULL DEFAULT FALSE,
+    compte_epargne_id INTEGER REFERENCES comptes(id) ON DELETE SET NULL,
+    objectif_id INTEGER REFERENCES objectifs_epargne(id) ON DELETE SET NULL
 );
 
 -- 11. Répartitions du compte commun (simulateur manuel, historisé)
@@ -161,11 +166,14 @@ FOR EACH ROW
 EXECUTE FUNCTION verifier_coherence_categorie_transaction();
 
 -- Le type_categorie de la catégorie liée doit correspondre au type_transaction du modèle
+-- (ignoré si categorie_id est NULL, cas d'un modèle de virement automatisé vers l'épargne)
 CREATE OR REPLACE FUNCTION verifier_coherence_categorie_modele()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF (SELECT type_categorie FROM categories WHERE id = NEW.categorie_id) != NEW.type_transaction THEN
-    RAISE EXCEPTION 'Le type de la catégorie ne correspond pas au type du modèle.';
+  IF NEW.categorie_id IS NOT NULL THEN
+    IF (SELECT type_categorie FROM categories WHERE id = NEW.categorie_id) != NEW.type_transaction THEN
+      RAISE EXCEPTION 'Le type de la catégorie ne correspond pas au type du modèle.';
+    END IF;
   END IF;
   RETURN NEW;
 END;

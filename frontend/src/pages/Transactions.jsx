@@ -7,6 +7,7 @@ import {
   creerRetraitEpargneApi, creerVirementEpargneApi, creerVirementVersCourantApi,
 } from '../api/transactions';
 import { aplatirPourSelect } from '../api/organiserCategories';
+import { listerModelesApi } from '../api/modeles';
 import '../style/tableur.css';
 
 const MOYENS_PAIEMENT = ['CB', 'Virement', 'Especes', 'Prelevement', 'Cheque'];
@@ -31,12 +32,13 @@ function ligneVide() {
 
 function Transactions() {
   const [comptes, setComptes] = useState([]);
-  const [compteSelectionne, setCompteSelectionne] = useState('');
   const [categories, setCategories] = useState([]);
   const [objectifs, setObjectifs] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [modeles, setModeles] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
+  const [compteSelectionne, setCompteSelectionne] = useState('');
   const [nouvelleLigne, setNouvelleLigne] = useState(ligneVide());
 
   useEffect(() => {
@@ -87,9 +89,22 @@ function Transactions() {
   }, [compteSelectionne, chargerTransactions]);
 
   useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation du formulaire à chaque changement de compte pour éviter les effets de bord entre comptes
-  setNouvelleLigne(ligneVide());
-}, [compteSelectionne]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation du formulaire à chaque changement de compte pour éviter les effets de bord entre comptes
+    setNouvelleLigne(ligneVide());
+  }, [compteSelectionne]);
+
+  useEffect(() => {
+    if (!compteSelectionne) return;
+    async function chargerModeles() {
+      try {
+        const donnees = await listerModelesApi(compteSelectionne);
+        setModeles(donnees);
+      } catch (err) {
+        setErreur(err.message);
+      }
+    }
+    chargerModeles();
+  }, [compteSelectionne]);
 
   const compte = comptes.find((c) => c.id === Number(compteSelectionne));
   const estCompteEpargne = compte && compte.type_compte !== 'Compte courant';
@@ -276,6 +291,36 @@ function Transactions() {
     }));
   }
 
+  function appliquerModele(modele) {
+    if (modele.est_virement_epargne) {
+      setNouvelleLigne((precedent) => ({
+        ...precedent,
+        description: modele.nom,
+        type_transaction: 'depense',
+        montant: modele.montant ? (modele.montant / 100).toFixed(2) : precedent.montant,
+        est_virement_epargne: true,
+        compte_epargne_id: String(modele.compte_epargne_id),
+        objectif_id: modele.objectif_id ? String(modele.objectif_id) : '',
+        est_virement_vers_courant: false,
+        est_simulee: false,
+        categorie_id: '',
+      }));
+      return;
+    }
+
+    setNouvelleLigne((precedent) => ({
+      ...precedent,
+      categorie_id: String(modele.categorie_id),
+      type_transaction: modele.type_transaction,
+      montant: modele.montant ? (modele.montant / 100).toFixed(2) : precedent.montant,
+      description: modele.nom,
+      moyen_paiement: modele.moyen_paiement || precedent.moyen_paiement,
+      est_virement_epargne: false,
+      est_virement_vers_courant: false,
+      est_simulee: false,
+    }));
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -302,6 +347,16 @@ function Transactions() {
           )}
         </div>
       </div>
+
+      {modeles.length > 0 && (
+        <div className="rangee-modeles">
+          {modeles.map((m) => (
+            <button key={m.id} className="btn-modele" onClick={() => appliquerModele(m)}>
+              {m.nom}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="tableur-wrapper">
         <table className="tableur">

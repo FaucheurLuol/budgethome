@@ -40,10 +40,21 @@ router.get('/', verifierToken, async (req, res, next) => {
 // POST /modeles - création
 router.post('/', verifierToken, async (req, res, next) => {
   try {
-    const { compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement } = req.body;
+    const {
+      compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement,
+      est_virement_epargne, compte_epargne_id, objectif_id
+    } = req.body;
 
-    if (!compte_id || !nom || !categorie_id || !type_transaction) {
-      return res.status(400).json({ erreur: 'Compte, nom, catégorie et type sont requis.' });
+    if (!compte_id || !nom || !type_transaction) {
+      return res.status(400).json({ erreur: 'Compte, nom et type sont requis.' });
+    }
+
+    if (!est_virement_epargne && !categorie_id) {
+      return res.status(400).json({ erreur: 'Une catégorie est requise pour un modèle classique.' });
+    }
+
+    if (est_virement_epargne && !compte_epargne_id) {
+      return res.status(400).json({ erreur: 'Un compte d\'épargne de destination est requis.' });
     }
 
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
@@ -51,19 +62,27 @@ router.post('/', verifierToken, async (req, res, next) => {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
     }
 
-    const verifCategorie = await pool.query(
-      'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
-      [categorie_id, req.utilisateur.id]
-    );
-    if (verifCategorie.rows.length === 0) {
-      return res.status(400).json({ erreur: 'Catégorie introuvable.' });
+    if (categorie_id) {
+      const verifCategorie = await pool.query(
+        'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
+        [categorie_id, req.utilisateur.id]
+      );
+      if (verifCategorie.rows.length === 0) {
+        return res.status(400).json({ erreur: 'Catégorie introuvable.' });
+      }
     }
 
     const resultat = await pool.query(
-      `INSERT INTO modeles_transactions (utilisateur_id, compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO modeles_transactions
+       (utilisateur_id, compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement,
+        est_virement_epargne, compte_epargne_id, objectif_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [req.utilisateur.id, compte_id, nom, categorie_id, montant || null, type_transaction, moyen_paiement || null]
+      [
+        req.utilisateur.id, compte_id, nom, categorie_id || null, montant || null,
+        type_transaction, moyen_paiement || null,
+        est_virement_epargne || false, compte_epargne_id || null, objectif_id || null
+      ]
     );
 
     res.status(201).json(resultat.rows[0]);
@@ -75,7 +94,10 @@ router.post('/', verifierToken, async (req, res, next) => {
 // PUT /modeles/:id - modification
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
-    const { nom, categorie_id, montant, type_transaction, moyen_paiement } = req.body;
+    const {
+      nom, categorie_id, montant, type_transaction, moyen_paiement,
+      est_virement_epargne, compte_epargne_id, objectif_id
+    } = req.body;
 
     const existant = await pool.query(
       'SELECT compte_id FROM modeles_transactions WHERE id = $1 AND utilisateur_id = $2',
@@ -87,10 +109,15 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 
     const resultat = await pool.query(
       `UPDATE modeles_transactions
-       SET nom = $1, categorie_id = $2, montant = $3, type_transaction = $4, moyen_paiement = $5
-       WHERE id = $6
+       SET nom = $1, categorie_id = $2, montant = $3, type_transaction = $4, moyen_paiement = $5,
+           est_virement_epargne = $6, compte_epargne_id = $7, objectif_id = $8
+       WHERE id = $9
        RETURNING *`,
-      [nom, categorie_id, montant || null, type_transaction, moyen_paiement || null, req.params.id]
+      [
+        nom, categorie_id || null, montant || null, type_transaction, moyen_paiement || null,
+        est_virement_epargne || false, compte_epargne_id || null, objectif_id || null,
+        req.params.id
+      ]
     );
 
     res.json(resultat.rows[0]);

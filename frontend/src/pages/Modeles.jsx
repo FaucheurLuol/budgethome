@@ -3,6 +3,7 @@ import { listerComptesApi } from '../api/comptes';
 import { listerCategoriesApi } from '../api/categories';
 import { listerModelesApi, creerModeleApi, supprimerModeleApi } from '../api/modeles';
 import { aplatirPourSelect } from '../api/organiserCategories';
+import { listerObjectifsApi } from '../api/objectifs';
 
 const MOYENS_PAIEMENT = ['CB', 'Virement', 'Especes', 'Prelevement', 'Cheque'];
 
@@ -20,15 +21,22 @@ function Modeles() {
   const [typeTransaction, setTypeTransaction] = useState('depense');
   const [moyenPaiement, setMoyenPaiement] = useState('');
 
+  const [objectifs, setObjectifs] = useState([]);
+  const [estVirementEpargne, setEstVirementEpargne] = useState(false);
+  const [compteEpargneId, setCompteEpargneId] = useState('');
+  const [objectifId, setObjectifId] = useState('');
+
   useEffect(() => {
     async function chargerInit() {
       try {
-        const [donneesComptes, donneesCategories] = await Promise.all([
+        const [donneesComptes, donneesCategories, donneesObjectifs] = await Promise.all([
           listerComptesApi(),
           listerCategoriesApi(),
+          listerObjectifsApi(),
         ]);
         setComptes(donneesComptes);
         setCategories(donneesCategories);
+        setObjectifs(donneesObjectifs);
         if (donneesComptes.length > 0) {
           setCompteSelectionne(String(donneesComptes[0].id));
         }
@@ -63,32 +71,45 @@ function Modeles() {
     }
   }
 
-  const categoriesFiltrees = aplatirPourSelect(
-    categories.filter((c) => c.type_categorie === typeTransaction)
-  );
+  const categoriesFiltrees = aplatirPourSelect(categories.filter((c) => c.type_categorie === typeTransaction));
+  const comptesEpargneDisponibles = comptes.filter((c) => c.type_compte !== 'Compte courant');
 
   async function gererSoumission(e) {
     e.preventDefault();
     setErreur('');
     try {
-      if (!nom || !categorieId) {
-        setErreur('Nom et catégorie sont requis.');
+      if (!nom) {
+        setErreur('Le nom est requis.');
+        return;
+      }
+      if (!estVirementEpargne && !categorieId) {
+        setErreur('Une catégorie est requise.');
+        return;
+      }
+      if (estVirementEpargne && !compteEpargneId) {
+        setErreur('Un compte d\'épargne de destination est requis.');
         return;
       }
 
       await creerModeleApi({
         compte_id: Number(compteSelectionne),
         nom,
-        categorie_id: Number(categorieId),
+        categorie_id: estVirementEpargne ? null : Number(categorieId),
         montant: montant ? Math.round(parseFloat(montant) * 100) : null,
-        type_transaction: typeTransaction,
+        type_transaction: estVirementEpargne ? 'depense' : typeTransaction,
         moyen_paiement: moyenPaiement || null,
+        est_virement_epargne: estVirementEpargne,
+        compte_epargne_id: estVirementEpargne ? Number(compteEpargneId) : null,
+        objectif_id: objectifId ? Number(objectifId) : null,
       });
 
       setNom('');
       setCategorieId('');
       setMontant('');
       setMoyenPaiement('');
+      setEstVirementEpargne(false);
+      setCompteEpargneId('');
+      setObjectifId('');
       rechargerModeles();
     } catch (err) {
       setErreur(err.message);
@@ -128,8 +149,11 @@ function Modeles() {
           <li key={m.id} className="carte-modele">
             <div>
               <strong>{m.nom}</strong>
-              <span>{categories.find((c) => c.id === m.categorie_id)?.nom || '—'}</span>
-              <span>{m.type_transaction === 'revenu' ? 'Revenu' : 'Dépense'}</span>
+              {m.est_virement_epargne ? (
+                <span>Vers l'épargne → {comptes.find((c) => c.id === m.compte_epargne_id)?.nom || '—'}</span>
+              ) : (
+                <span>{categories.find((c) => c.id === m.categorie_id)?.nom || '—'}</span>
+              )}
               {m.montant && <span>{(m.montant / 100).toFixed(2)} €</span>}
             </div>
             <button onClick={() => gererSuppression(m.id)}>Supprimer</button>
@@ -142,23 +166,64 @@ function Modeles() {
         <label htmlFor="nom">Nom :</label>
         <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
 
-        <label htmlFor="type_transaction">Type :</label>
-        <select
-          id="type_transaction"
-          value={typeTransaction}
-          onChange={(e) => { setTypeTransaction(e.target.value); setCategorieId(''); }}
-        >
-          <option value="depense">Dépense</option>
-          <option value="revenu">Revenu</option>
-        </select>
+        <label>
+          <input
+            type="checkbox"
+            checked={estVirementEpargne}
+            onChange={(e) => setEstVirementEpargne(e.target.checked)}
+          />
+          Virement automatisé vers l'épargne
+        </label>
 
-        <label htmlFor="categorie_id">Catégorie :</label>
-        <select id="categorie_id" value={categorieId} onChange={(e) => setCategorieId(e.target.value)} required>
-          <option value="">Choisir...</option>
-          {categoriesFiltrees.map((cat) => (
-            <option key={cat.id} value={cat.id}>{cat.nomAffiche}</option>
-          ))}
-        </select>
+        {!estVirementEpargne && (
+          <>
+            <label htmlFor="type_transaction">Type :</label>
+            <select
+              id="type_transaction"
+              value={typeTransaction}
+              onChange={(e) => { setTypeTransaction(e.target.value); setCategorieId(''); }}
+            >
+              <option value="depense">Dépense</option>
+              <option value="revenu">Revenu</option>
+            </select>
+
+            <label htmlFor="categorie_id">Catégorie :</label>
+            <select id="categorie_id" value={categorieId} onChange={(e) => setCategorieId(e.target.value)}>
+              <option value="">Choisir...</option>
+              {categoriesFiltrees.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.nomAffiche}</option>
+              ))}
+            </select>
+
+            <label htmlFor="moyen_paiement">Moyen de paiement par défaut (optionnel) :</label>
+            <select id="moyen_paiement" value={moyenPaiement} onChange={(e) => setMoyenPaiement(e.target.value)}>
+              <option value="">Aucun</option>
+              {MOYENS_PAIEMENT.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </>
+        )}
+
+        {estVirementEpargne && (
+          <>
+            <label htmlFor="compte_epargne_id">Livret de destination :</label>
+            <select id="compte_epargne_id" value={compteEpargneId} onChange={(e) => setCompteEpargneId(e.target.value)}>
+              <option value="">Choisir...</option>
+              {comptesEpargneDisponibles.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </select>
+
+            <label htmlFor="objectif_id">Objectif (optionnel) :</label>
+            <select id="objectif_id" value={objectifId} onChange={(e) => setObjectifId(e.target.value)}>
+              <option value="">Aucun</option>
+              {objectifs.map((obj) => (
+                <option key={obj.id} value={obj.id}>{obj.nom}</option>
+              ))}
+            </select>
+          </>
+        )}
 
         <label htmlFor="montant">Montant par défaut (€, optionnel) :</label>
         <input
@@ -168,14 +233,6 @@ function Modeles() {
           value={montant}
           onChange={(e) => setMontant(e.target.value)}
         />
-
-        <label htmlFor="moyen_paiement">Moyen de paiement par défaut (optionnel) :</label>
-        <select id="moyen_paiement" value={moyenPaiement} onChange={(e) => setMoyenPaiement(e.target.value)}>
-          <option value="">Aucun</option>
-          {MOYENS_PAIEMENT.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
 
         <button className="btn-primary" type="submit">Créer</button>
       </form>
