@@ -1,0 +1,76 @@
+.dashboard-cartes-soldes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.carte-solde {
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.carte-solde span {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.carte-solde strong {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--color-accent);
+}
+
+.carte-evolution {
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.dashboard-camemberts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.carte-camembert {
+  background-color: var(--color-surface);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.texte-vide {
+  color: var(--color-text-muted);
+  padding: 40px 0;
+}
+
+.total-camembert {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.dashboard-liste-objectifs {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.dashboard-liste-objectifs li {
+  display: grid;
+  grid-template-columns: 120px 1fr 140px;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--color-surface);
+  padding: 12px 16px;
+  border-radius: 8px;
+}
