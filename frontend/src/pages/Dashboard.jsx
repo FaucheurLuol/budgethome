@@ -184,7 +184,7 @@ function Dashboard() {
       </ul>
 
       <h2 className="dashboard-h2">Budgets du mois</h2>
-      <table className="table-generique">
+      <table className="table-dashboard">
         <thead>
           <tr>
             <th>Compte</th>
