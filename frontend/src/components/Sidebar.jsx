@@ -19,6 +19,9 @@ function Sidebar({ ouverte, fermer }) {
         <NavLink to="/categories" onClick={fermer} className="sidebar-lien">
           Catégories
         </NavLink>
+        <NavLink to="/transactions" onClick={fermer} className="sidebar-lien">
+          Transactions
+        </NavLink>
         {/* futurs liens : Comptes, Transactions, Budgets, Objectifs, Simulation */}
       </nav>
 

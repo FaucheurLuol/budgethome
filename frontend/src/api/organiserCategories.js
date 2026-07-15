@@ -16,3 +16,23 @@ export function organiserEnArbre(categoriesPlates) {
 
   return racines;
 }
+
+export function aplatirPourSelect(categoriesPlates) {
+  const arbre = organiserEnArbre(categoriesPlates);
+  const resultat = [];
+
+  function parcourir(noeuds, profondeur) {
+    noeuds.forEach((noeud) => {
+      resultat.push({
+        id: noeud.id,
+        nomAffiche: '—'.repeat(profondeur) + (profondeur > 0 ? ' ' : '') + noeud.nom,
+      });
+      if (noeud.enfants.length > 0) {
+        parcourir(noeud.enfants, profondeur + 1);
+      }
+    });
+  }
+
+  parcourir(arbre, 0);
+  return resultat;
+}
