@@ -45,3 +45,22 @@ export async function archiverCompteApi(id) {
 
   return donnees;
 }
+
+export async function listerComptesArchivesApi() {
+  const reponse = await fetch(`${API_URL}/comptes/archives`, {
+    headers: { ...getAuthHeader() },
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération des comptes archivés.');
+  return donnees;
+}
+
+export async function desarchiverCompteApi(id) {
+  const reponse = await fetch(`${API_URL}/comptes/${id}/desarchiver`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeader() },
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du désarchivage.');
+  return donnees;
+}

@@ -21,6 +21,23 @@ router.get('/', verifierToken, async (req, res, next) => {
   }
 });
 
+// GET /comptes/archives - liste les comptes archivés de l'utilisateur
+router.get('/archives', verifierToken, async (req, res, next) => {
+  try {
+    const resultat = await pool.query(
+      `SELECT c.*
+       FROM comptes c
+       JOIN compte_utilisateurs cu ON c.id = cu.compte_id
+       WHERE cu.utilisateur_id = $1 AND c.est_archive = TRUE
+       ORDER BY c.nom`,
+      [req.utilisateur.id]
+    );
+    res.json(resultat.rows);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 // GET /comptes/:id - détail d'un compte (si l'utilisateur y a accès)
 router.get('/:id', verifierToken, async (req, res, next) => {
   try {
@@ -119,6 +136,28 @@ router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
 
     const resultat = await pool.query(
       'UPDATE comptes SET est_archive = TRUE WHERE id = $1 RETURNING *',
+      [req.params.id]
+    );
+
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+// PATCH /comptes/:id/desarchiver
+router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
+  try {
+    const verifAcces = await pool.query(
+      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (verifAcces.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const resultat = await pool.query(
+      'UPDATE comptes SET est_archive = FALSE WHERE id = $1 RETURNING *',
       [req.params.id]
     );
 

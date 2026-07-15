@@ -34,6 +34,9 @@ function Sidebar({ ouverte, fermer }) {
         <NavLink to="/repartition" onClick={fermer} className="sidebar-lien">
           Répartition
         </NavLink>
+        <NavLink to="/comptes-archives" onClick={fermer} className="sidebar-lien">
+          Archives
+        </NavLink>
       </nav>
 
       <div className="sidebar-utilisateur">

@@ -12,6 +12,7 @@ import Budgets from './pages/Budgets';
 import Objectifs from './pages/Objectifs';
 import Modeles from './pages/Modeles';
 import Repartition from './pages/Repartition';
+import ComptesArchives from './pages/ComptesArchives';
 
 function App() {
   return (
@@ -81,6 +82,14 @@ function App() {
           element={
             <RouteProtegee>
               <Repartition />
+            </RouteProtegee>
+          }
+        />
+        <Route
+          path="/comptes-archives"
+          element={
+            <RouteProtegee>
+              <ComptesArchives />
             </RouteProtegee>
           }
         />
