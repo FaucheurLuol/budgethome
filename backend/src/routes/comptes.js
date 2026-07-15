@@ -185,4 +185,37 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
   }
 });
 
+// DELETE /comptes/:id/definitif - vide le compte de ses transactions puis le supprime
+router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const verifAcces = await client.query(
+      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (verifAcces.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    await client.query('BEGIN');
+
+    // Les allocations d'épargne liées aux transactions de ce compte disparaissent
+    // automatiquement grâce à ON DELETE CASCADE sur allocations_epargne.transaction_id
+    await client.query('DELETE FROM transactions WHERE compte_id = $1', [req.params.id]);
+    await client.query('DELETE FROM budget_mensuel WHERE compte_id = $1', [req.params.id]);
+    await client.query('DELETE FROM budget_defaut WHERE compte_id = $1', [req.params.id]);
+    await client.query('DELETE FROM modeles_transactions WHERE compte_id = $1', [req.params.id]);
+    await client.query('DELETE FROM compte_utilisateurs WHERE compte_id = $1', [req.params.id]);
+    await client.query('DELETE FROM comptes WHERE id = $1', [req.params.id]);
+
+    await client.query('COMMIT');
+    res.status(204).send();
+  } catch (erreur) {
+    await client.query('ROLLBACK');
+    next(erreur);
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

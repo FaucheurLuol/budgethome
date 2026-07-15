@@ -64,3 +64,14 @@ export async function desarchiverCompteApi(id) {
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du désarchivage.');
   return donnees;
 }
+
+export async function supprimerCompteDefinitifApi(id) {
+  const reponse = await fetch(`${API_URL}/comptes/${id}/definitif`, {
+    method: 'DELETE',
+    headers: { ...getAuthHeader() },
+  });
+  if (!reponse.ok) {
+    const donnees = await reponse.json();
+    throw new Error(donnees.erreur || 'Erreur lors de la suppression définitive du compte.');
+  }
+}

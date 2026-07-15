@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listerComptesArchivesApi, desarchiverCompteApi } from '../api/comptes';
+import { listerComptesArchivesApi, desarchiverCompteApi, supprimerCompteDefinitifApi } from '../api/comptes';
 import '../style/app.css';
 
 function ComptesArchives() {
@@ -32,12 +32,26 @@ function ComptesArchives() {
     }
   }
 
+  async function gererSuppression(id, nom) {
+    const confirmation = window.confirm(
+      `Supprimer définitivement "${nom}" et TOUTES ses transactions, budgets et modèles associés ? Cette action est IRRÉVERSIBLE.`
+    );
+    if (!confirmation) return;
+
+    try {
+      await supprimerCompteDefinitifApi(id);
+      setComptes(comptes.filter((c) => c.id !== id));
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
     <div className="page-app">
       <h1>Comptes archivés</h1>
-      <p className="page-sous-titre">Consultez ou réactivez vos comptes archivés.</p>
+      <p className="page-sous-titre">Consultez, réactivez ou supprimez définitivement vos comptes archivés.</p>
 
       {erreur && <p className="message-erreur">{erreur}</p>}
 
@@ -49,7 +63,10 @@ function ComptesArchives() {
             <li key={compte.id} className="carte-item">
               <div className="carte-item-entete">
                 <strong>{compte.nom}</strong>
-                <button className="bouton-discret" onClick={() => gererDesarchivage(compte.id)}>Désarchiver</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="bouton-discret" onClick={() => gererDesarchivage(compte.id)}>Désarchiver</button>
+                  <button className="bouton-discret" onClick={() => gererSuppression(compte.id, compte.nom)}>Supprimer</button>
+                </div>
               </div>
               <span className="carte-detail">{compte.type_compte}</span>
               <span className="carte-montant">{(compte.solde_initial / 100).toFixed(2)} €</span>
