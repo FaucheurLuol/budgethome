@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { calculerRepartitionApi, listerHistoriqueRepartitionApi, activerRepartitionApi } from '../api/repartition';
+import '../style/app.css';
+import '../style/tableur.css';
 
 function ligneVide() {
   return { nom: '', montant: '' };
@@ -102,7 +104,7 @@ function Repartition() {
   if (chargement) return <p>Chargement...</p>;
 
   return (
-    <div>
+    <div className="page-app">
       <h1>Répartition du compte commun</h1>
       <p className="page-sous-titre">
         Simulez la répartition des versements vers le compte commun, au prorata de vos revenus.
@@ -111,7 +113,7 @@ function Repartition() {
       {erreur && <p className="message-erreur">{erreur}</p>}
 
       {repartitionActive && (
-        <div className="carte-repartition-active">
+        <div className="bloc-repartition">
           <h2>Répartition active — {repartitionActive.mois}</h2>
           {repartitionActive.resultat.repartition.map((r) => (
             <p key={r.nom}>{r.nom} : {(r.part_a_verser / 100).toFixed(2)} €</p>
@@ -121,68 +123,71 @@ function Repartition() {
 
       <h2>Nouvelle simulation</h2>
 
-      <label htmlFor="mois">Mois :</label>
-      <input
-        id="mois"
-        type="month"
-        value={mois.slice(0, 7)}
-        onChange={(e) => setMois(`${e.target.value}-01`)}
-      />
+      <div className="bloc-repartition">
+        <label htmlFor="mois" className="label-inline">Mois :</label>
+        <input
+          className="select-mois"
+          id="mois"
+          type="month"
+          value={mois.slice(0, 7)}
+          onChange={(e) => setMois(`${e.target.value}-01`)}
+        />
 
-      <h3>Revenus</h3>
-      {revenus.map((r, i) => (
-        <div key={i} className="ligne-repartition">
-          <input
-            type="text"
-            placeholder="Personne (ex: Chloé)"
-            value={r.personne}
-            onChange={(e) => majLigne(revenus, setRevenus, i, 'personne', e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Source (ex: Salaire, CAF)"
-            value={r.source}
-            onChange={(e) => majLigne(revenus, setRevenus, i, 'source', e.target.value)}
-          />
-          <input
-            type="number"
-            step="0.01"
-            placeholder="Montant (€)"
-            value={r.montant}
-            onChange={(e) => majLigne(revenus, setRevenus, i, 'montant', e.target.value)}
-          />
-          <button onClick={() => retirerLigne(revenus, setRevenus, i)}>✕</button>
+        <h3>Revenus</h3>
+        {revenus.map((r, i) => (
+          <div key={i} className="ligne-repartition-nouvelle">
+            <input
+              type="text"
+              placeholder="Personne (ex: Chloé)"
+              value={r.personne}
+              onChange={(e) => majLigne(revenus, setRevenus, i, 'personne', e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Source (ex: Salaire, CAF)"
+              value={r.source}
+              onChange={(e) => majLigne(revenus, setRevenus, i, 'source', e.target.value)}
+            />
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Montant (€)"
+              value={r.montant}
+              onChange={(e) => majLigne(revenus, setRevenus, i, 'montant', e.target.value)}
+            />
+            <button className="btn-retirer-ligne" onClick={() => retirerLigne(revenus, setRevenus, i)}>✕</button>
+          </div>
+        ))}
+        <button className="btn-ajouter-champ" onClick={() => ajouterLigne(revenus, setRevenus, ligneRevenuVide)}>+ Ajouter un revenu</button>
+
+        <h3>Dépenses communes</h3>
+        {depenses.map((d, i) => (
+          <div key={i} className="ligne-repartition-nouvelle">
+            <input
+              type="text"
+              placeholder="Nom"
+              value={d.nom}
+              onChange={(e) => majLigne(depenses, setDepenses, i, 'nom', e.target.value)}
+            />
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Montant (€)"
+              value={d.montant}
+              onChange={(e) => majLigne(depenses, setDepenses, i, 'montant', e.target.value)}
+            />
+            <button className="btn-retirer-ligne" onClick={() => retirerLigne(depenses, setDepenses, i)}>✕</button>
+          </div>
+        ))}
+        <button className="btn-ajouter-champ" onClick={() => ajouterLigne(depenses, setDepenses)}>+ Ajouter une dépense</button>
+
+        <div>
+          <button className="btn-primary" onClick={gererCalcul}>Calculer</button>
         </div>
-      ))}
-      <button onClick={() => ajouterLigne(revenus, setRevenus, ligneRevenuVide)}>+ Ajouter un revenu</button>
-
-      <h3>Dépenses communes</h3>
-      {depenses.map((d, i) => (
-        <div key={i} className="ligne-repartition">
-          <input
-            type="text"
-            placeholder="Nom"
-            value={d.nom}
-            onChange={(e) => majLigne(depenses, setDepenses, i, 'nom', e.target.value)}
-          />
-          <input
-            type="number"
-            step="0.01"
-            placeholder="Montant (€)"
-            value={d.montant}
-            onChange={(e) => majLigne(depenses, setDepenses, i, 'montant', e.target.value)}
-          />
-          <button onClick={() => retirerLigne(depenses, setDepenses, i)}>✕</button>
-        </div>
-      ))}
-      <button onClick={() => ajouterLigne(depenses, setDepenses)}>+ Ajouter une dépense</button>
-
-      <div>
-        <button className="btn-primary" onClick={gererCalcul}>Calculer</button>
       </div>
 
       {resultat && (
-        <div className="carte-resultat">
+        <div className="carte-resultat bloc-repartition">
           <h3>Résultat</h3>
           <p>Revenu total : {(resultat.resultat.revenu_total / 100).toFixed(2)} €</p>
           <p>Dépenses totales : {(resultat.resultat.depenses_totales / 100).toFixed(2)} €</p>
@@ -200,8 +205,8 @@ function Repartition() {
             {h.resultat.repartition.map((r) => (
               <span key={r.nom}>{r.nom}: {(r.part_a_verser / 100).toFixed(2)} €</span>
             ))}
-            <button onClick={() => chargerDansFormulaire(h)}>Charger</button>
-            <button onClick={() => gererActivation(h.id)} disabled={h.est_active}>
+            <button className="bouton-discret" onClick={() => chargerDansFormulaire(h)}>Charger</button>
+            <button className="bouton-discret" onClick={() => gererActivation(h.id)} disabled={h.est_active}>
               {h.est_active ? 'Active' : 'Activer'}
             </button>
           </li>
