@@ -4,8 +4,10 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import {
-  listerSoldesApi, listerEvolutionComptesCourantsApi, listerRepartitionApi, listerBudgetsDuMoisApi,
+  listerSoldesApi, listerEvolutionComptesCourantsApi, listerRepartitionApi, 
+  listerBudgetsDuMoisApi,
 } from '../api/dashboard';
+import { obtenirSoldeRestantApi } from '../api/budgets';
 import { listerObjectifsApi } from '../api/objectifs';
 import '../style/app.css';
 import '../style/dashboard.css';
@@ -21,6 +23,7 @@ function Dashboard() {
   const [depensesAnnee, setDepensesAnnee] = useState([]);
   const [objectifs, setObjectifs] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [soldesRestants, setSoldesRestants] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
   const [compteFiltre, setCompteFiltre] = useState('');
@@ -74,6 +77,22 @@ function Dashboard() {
         setDepensesAnnee(donneesDepensesAnnee);
         setObjectifs(donneesObjectifs);
         setBudgets(donneesBudgets);
+
+        const maintenant = new Date();
+        const moisActuel = `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}-01`;
+
+        const comptesCourants = donneesSoldes.filter((c) => c.type_compte === 'Compte courant');
+        const resultatsSoldes = await Promise.all(
+          comptesCourants.map(async (c) => {
+            try {
+              const donnees = await obtenirSoldeRestantApi(c.id, moisActuel);
+              return { ...c, solde_restant: donnees.solde_restant };
+            } catch {
+              return { ...c, solde_restant: null };
+            }
+          })
+        );
+        setSoldesRestants(resultatsSoldes.filter((r) => r.solde_restant !== null));
       } catch (err) {
         setErreur(err.message);
       } finally {
@@ -132,6 +151,17 @@ function Dashboard() {
           </div>
         ))}
       </div>
+
+      {soldesRestants.length > 0 && (
+        <div className="dashboard-cartes-soldes">
+          {soldesRestants.map((c) => (
+            <div key={c.id} className="carte-solde carte-solde-restant">
+              <span>Reste à budgétiser — {c.nom}</span>
+              <strong>{(c.solde_restant / 100).toFixed(2)} €</strong>
+            </div>
+          ))}
+        </div>
+      )}
 
       <h2 className="dashboard-h2">Évolution des comptes courants</h2>
       <div className="dashboard-evolutions">

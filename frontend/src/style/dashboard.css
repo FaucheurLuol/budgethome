@@ -141,3 +141,11 @@
   gap: 8px;
   justify-content: center;
 }
+
+.carte-solde-restant {
+  border-color: rgba(107, 143, 135, 0.35);
+}
+
+.carte-solde-restant strong {
+  color: var(--color-accent-soft);
+}

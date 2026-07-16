@@ -73,3 +73,12 @@ export async function supprimerBudgetMensuelApi(id) {
     throw new Error(donnees.erreur || 'Erreur lors de la suppression du budget mensuel.');
   }
 }
+
+export async function obtenirSoldeRestantApi(compteId, mois) {
+  const reponse = await fetch(`${API_URL}/budgets/solde-restant?compte_id=${compteId}&mois=${mois}`, {
+    headers: { ...getAuthHeader() },
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération du solde restant.');
+  return donnees;
+}

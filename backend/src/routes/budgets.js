@@ -260,4 +260,77 @@ router.delete('/mensuel/:id', verifierToken, async (req, res, next) => {
   }
 });
 
+// GET /budgets/solde-restant?compte_id=X&mois=2026-07-01 - solde perso disponible pour budgétiser
+router.get('/solde-restant', verifierToken, async (req, res, next) => {
+  try {
+    const { compte_id, mois } = req.query;
+
+    if (!compte_id || !mois) {
+      return res.status(400).json({ erreur: 'Les paramètres compte_id et mois sont requis.' });
+    }
+
+    const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    // Vérifie que c'est bien un compte courant perso (un seul propriétaire, type courant)
+    const infoCompte = await pool.query(
+      `SELECT c.type_compte, COUNT(cu.utilisateur_id) AS nb_proprietaires
+      FROM comptes c
+      JOIN compte_utilisateurs cu ON cu.compte_id = c.id
+      WHERE c.id = $1
+      GROUP BY c.type_compte`,
+      [compte_id]
+    );
+
+    if (infoCompte.rows.length === 0 || Number(infoCompte.rows[0].nb_proprietaires) > 1) {
+      return res.status(400).json({ erreur: 'Le solde restant ne s\'applique qu\'à un compte personnel.' });
+    }
+
+    if (infoCompte.rows[0].type_compte !== 'Compte courant') {
+      return res.status(400).json({ erreur: 'Le solde restant ne s\'applique qu\'à un compte courant.' });
+    }
+
+    // Récupère la répartition active
+    const repartitionActive = await pool.query(
+      'SELECT revenus, resultat FROM repartitions_communes WHERE est_active = TRUE LIMIT 1'
+    );
+
+    if (repartitionActive.rows.length === 0) {
+      return res.json({ solde_restant: null, message: 'Aucune répartition active.' });
+    }
+
+    const { revenus, resultat } = repartitionActive.rows[0];
+
+    const revenuPerso = revenus
+      .filter((r) => r.utilisateur_id === req.utilisateur.id)
+      .reduce((total, r) => total + r.montant, 0);
+
+    const ligneRepartition = resultat.repartition.find((r) => {
+      const revenuCorrespondant = revenus.find((rv) => rv.personne === r.nom && rv.utilisateur_id === req.utilisateur.id);
+      return revenuCorrespondant;
+    });
+    const partAVerser = ligneRepartition ? ligneRepartition.part_a_verser : 0;
+
+    // Somme des budgets déjà définis ce mois-ci sur ce compte
+    const budgetsExistants = await pool.query(
+      'SELECT COALESCE(SUM(montant), 0) AS total FROM budget_mensuel WHERE compte_id = $1 AND mois = $2',
+      [compte_id, mois]
+    );
+    const totalBudgete = Number(budgetsExistants.rows[0].total);
+
+    const soldeRestant = revenuPerso - partAVerser - totalBudgete;
+
+    res.json({
+      solde_restant: soldeRestant,
+      revenu_perso: revenuPerso,
+      part_a_verser: partAVerser,
+      total_budgete: totalBudgete,
+    });
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 module.exports = router;

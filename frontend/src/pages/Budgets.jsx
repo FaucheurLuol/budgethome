@@ -3,7 +3,8 @@ import { listerComptesApi } from '../api/comptes';
 import { listerCategoriesApi } from '../api/categories';
 import {
   listerBudgetsDefautApi, creerBudgetDefautApi, supprimerBudgetDefautApi,
-  genererBudgetsMensuelsApi, listerSuiviBudgetsApi, modifierBudgetMensuelApi, supprimerBudgetMensuelApi,
+  genererBudgetsMensuelsApi, listerSuiviBudgetsApi, modifierBudgetMensuelApi,
+  supprimerBudgetMensuelApi, obtenirSoldeRestantApi,
 } from '../api/budgets';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import '../style/app.css';
@@ -15,16 +16,16 @@ function moisActuelISO() {
 
 function Budgets() {
   const [comptes, setComptes] = useState([]);
-  const [compteSelectionne, setCompteSelectionne] = useState('');
   const [categories, setCategories] = useState([]);
   const [budgetsDefaut, setBudgetsDefaut] = useState([]);
   const [suivi, setSuivi] = useState([]);
   const [mois, setMois] = useState(moisActuelISO());
-  const [chargement, setChargement] = useState(true);
+  const [compteSelectionne, setCompteSelectionne] = useState('');
   const [erreur, setErreur] = useState('');
-
   const [nouvelleCategorieId, setNouvelleCategorieId] = useState('');
   const [nouveauMontant, setNouveauMontant] = useState('');
+  const [chargement, setChargement] = useState(true);
+  const [soldeRestant, setSoldeRestant] = useState(null);
 
   useEffect(() => {
     async function chargerInit() {
@@ -49,6 +50,7 @@ function Budgets() {
 
   const chargerBudgets = useCallback(async () => {
     if (!compteSelectionne) return;
+    setErreur('');
     try {
       const [donneesDefaut, donneesSuivi] = await Promise.all([
         listerBudgetsDefautApi(compteSelectionne),
@@ -56,6 +58,13 @@ function Budgets() {
       ]);
       setBudgetsDefaut(donneesDefaut);
       setSuivi(donneesSuivi);
+
+      try {
+        const donneesSoldeRestant = await obtenirSoldeRestantApi(compteSelectionne, mois);
+        setSoldeRestant(donneesSoldeRestant);
+      } catch {
+        setSoldeRestant(null);
+      }
     } catch (err) {
       setErreur(err.message);
     }
@@ -149,6 +158,20 @@ function Budgets() {
           Générer les budgets du mois
         </button>
       </div>
+
+      {soldeRestant && soldeRestant.solde_restant !== null && (
+        <div className="carte-solde-principale">
+          <div className="solde-bloc">
+            <span className="solde-label">Solde restant à budgétiser</span>
+            <strong className="solde-valeur">{(soldeRestant.solde_restant / 100).toFixed(2)} €</strong>
+          </div>
+        </div>
+      )}
+      {soldeRestant && soldeRestant.solde_restant === null && (
+        <p className="page-sous-titre" style={{ textAlign: 'center' }}>
+          Aucune répartition active — activez-en une sur la page Répartition pour voir votre solde restant.
+        </p>
+      )}
 
       <h2>Suivi du mois</h2>
       <table className="table-generique">
