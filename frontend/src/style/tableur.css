@@ -191,8 +191,9 @@
 
 .objectif-barre-remplie {
   height: 100%;
-  background-color: var(--color-accent);
-  transition: width 0.3s ease;
+  background: linear-gradient(90deg, var(--color-accent) 0%, #8fbf8f 100%);
+  background-size: 10000% 100%;
+  transition: width 0.3s ease, background-position 0.3s ease;
 }
 
 .objectif-progression span {

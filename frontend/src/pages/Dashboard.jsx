@@ -206,7 +206,13 @@ function Dashboard() {
             <li key={obj.id}>
               <span>{obj.nom}</span>
               <div className="objectif-barre-fond">
-                <div className="objectif-barre-remplie" style={{ width: `${pourcentage}%` }} />
+                <div
+                  className="objectif-barre-remplie"
+                  style={{
+                    width: `${pourcentage}%`,
+                    backgroundPosition: `${pourcentage}% 0`,
+                  }}
+                />
               </div>
               <span>{(montantActuel / 100).toFixed(0)} € / {(obj.montant_cible / 100).toFixed(0)} €</span>
             </li>

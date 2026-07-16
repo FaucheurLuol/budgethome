@@ -76,7 +76,13 @@ function Objectifs() {
               </div>
               <div className="objectif-progression">
                 <div className="objectif-barre-fond">
-                  <div className="objectif-barre-remplie" style={{ width: `${pourcentage}%` }} />
+                  <div
+                    className="objectif-barre-remplie"
+                    style={{
+                      width: `${pourcentage}%`,
+                      backgroundPosition: `${pourcentage}% 0`,
+                    }}
+                  />
                 </div>
                 <span>
                   {(montantActuel / 100).toFixed(2)} € / {(obj.montant_cible / 100).toFixed(2)} €
