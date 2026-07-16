@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   listerComptesApi, creerCompteApi, archiverCompteApi, 
-  basculerFavoriApi, quitterCompteApi
+  basculerFavoriApi, quitterCompteApi, inviterUtilisateurApi
 } from '../api/comptes';
 import { listerUtilisateursApi } from '../api/utilisateurs';
 import { useAuth } from '../context/useAuth';
@@ -101,6 +101,22 @@ function Comptes() {
     }
   }
 
+  const [inviterOuvertPour, setInviterOuvertPour] = useState(null);
+  const [utilisateurAInviter, setUtilisateurAInviter] = useState('');
+
+  async function gererInvitation(compteId) {
+    if (!utilisateurAInviter) return;
+    try {
+      await inviterUtilisateurApi(compteId, Number(utilisateurAInviter));
+      const donneesComptes = await listerComptesApi();
+      setComptes(donneesComptes);
+      setInviterOuvertPour(null);
+      setUtilisateurAInviter('');
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -123,8 +139,26 @@ function Comptes() {
                 {compte.nb_proprietaires > 1 && (
                   <button className="bouton-discret" onClick={() => gererQuitterCompte(compte.id, compte.nom)}>Quitter</button>
                 )}
+                {compte.nb_proprietaires === 1 && compte.type_compte === 'Compte courant' && (
+                  <button className="bouton-discret" onClick={() => setInviterOuvertPour(inviterOuvertPour === compte.id ? null : compte.id)}>
+                    Inviter
+                  </button>
+                )}
               </div>
             </div>
+
+            {inviterOuvertPour === compte.id && (
+              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                <select value={utilisateurAInviter} onChange={(e) => setUtilisateurAInviter(e.target.value)}>
+                  <option value="">Choisir...</option>
+                  {autresUtilisateurs.map((u) => (
+                    <option key={u.id} value={u.id}>{u.nom}</option>
+                  ))}
+                </select>
+                <button className="btn-primary" onClick={() => gererInvitation(compte.id)}>Confirmer</button>
+              </div>
+            )}
+
             <span className="carte-detail">{compte.type_compte}</span>
             <span className={`carte-montant ${(soldes[compte.id] ?? compte.solde_initial) < 0 ? 'montant-negatif' : ''}`}>
               {((soldes[compte.id] ?? compte.solde_initial) / 100).toFixed(2)} €

@@ -22,6 +22,7 @@ router.get('/', verifierToken, async (req, res, next) => {
   }
 });
 
+// GET /comptes/archives - recupère le nombre de propriétaire des comptes archivés
 router.get('/archives', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -85,6 +86,54 @@ router.post('/:id/quitter', verifierToken, async (req, res, next) => {
   }
 });
 
+// POST /comptes/:id/inviter - ajoute un utilisateur (de mon foyer) à un compte que je possède déjà
+router.post('/:id/inviter', verifierToken, async (req, res, next) => {
+  try {
+    const { utilisateur_id } = req.body;
+
+    if (!utilisateur_id) {
+      return res.status(400).json({ erreur: 'utilisateur_id est requis.' });
+    }
+
+    const acces = await pool.query(
+      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (acces.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const infoCompte = await pool.query('SELECT type_compte FROM comptes WHERE id = $1', [req.params.id]);
+    if (infoCompte.rows[0].type_compte !== 'Compte courant') {
+      return res.status(400).json({ erreur: 'Seul un compte courant peut être partagé par invitation.' });
+    }
+
+    const dejaProprietaire = await pool.query(
+      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+      [req.params.id, utilisateur_id]
+    );
+    if (dejaProprietaire.rows.length > 0) {
+      return res.status(400).json({ erreur: 'Cette personne a déjà accès à ce compte.' });
+    }
+
+    // Vérifie que la personne à inviter fait bien partie de mon foyer
+    const moi = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    const cible = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [utilisateur_id]);
+
+    if (!moi.rows[0].foyer_id || moi.rows[0].foyer_id !== cible.rows[0]?.foyer_id) {
+      return res.status(403).json({ erreur: 'Vous ne pouvez inviter que des membres de votre foyer.' });
+    }
+
+    const resultat = await pool.query(
+      'INSERT INTO compte_utilisateurs (compte_id, utilisateur_id, est_archive) VALUES ($1, $2, FALSE) RETURNING *',
+      [req.params.id, utilisateur_id]
+    );
+
+    res.status(201).json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
 
 // POST /comptes - création d'un compte perso ou partagé
 router.post('/', verifierToken, async (req, res, next) => {
@@ -223,6 +272,7 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
   }
 });
 
+// DELETE /comptes/:id/definitif - suppression définitive
 router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {
