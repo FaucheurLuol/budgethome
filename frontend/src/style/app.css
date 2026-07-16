@@ -404,3 +404,16 @@
   padding: 0 4px;
   line-height: 1;
 }
+
+.badge-recurrent {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  background-color: rgba(107, 143, 135, 0.15);
+  color: var(--color-accent-soft);
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}

@@ -67,7 +67,10 @@ function Categories() {
     return (
       <li key={noeud.id}>
         <div className="noeud-categorie">
-          <span>{noeud.nom}</span>
+          <span>
+            {noeud.nom}
+            {noeud.est_recurrente && <span className="badge-recurrent">Récurrent</span>}
+          </span>
           <button className="bouton-discret" onClick={() => gererSuppression(noeud.id)}>Supprimer</button>
         </div>
         {noeud.enfants.length > 0 && (
