@@ -75,3 +75,13 @@ export async function supprimerCompteDefinitifApi(id) {
     throw new Error(donnees.erreur || 'Erreur lors de la suppression définitive du compte.');
   }
 }
+
+export async function basculerFavoriApi(id) {
+  const reponse = await fetch(`${API_URL}/comptes/${id}/favori`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeader() },
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la mise à jour du favori.');
+  return donnees;
+}

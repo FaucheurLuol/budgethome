@@ -13,7 +13,7 @@ router.get('/', verifierToken, async (req, res, next) => {
        FROM comptes c
        JOIN compte_utilisateurs cu ON c.id = cu.compte_id
        WHERE cu.utilisateur_id = $1 AND c.est_archive = FALSE
-       ORDER BY c.nom`,
+       ORDER BY c.est_favori DESC, c.nom`,
       [req.utilisateur.id]
     );
     res.json(resultat.rows.map((r) => ({ ...r, nb_proprietaires: Number(r.nb_proprietaires) })));
@@ -159,6 +159,28 @@ router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
 
     const resultat = await pool.query(
       'UPDATE comptes SET est_archive = FALSE WHERE id = $1 RETURNING *',
+      [req.params.id]
+    );
+
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+// PATCH /comptes/:id/favori - bascule le statut favori d'un compte
+router.patch('/:id/favori', verifierToken, async (req, res, next) => {
+  try {
+    const verifAcces = await pool.query(
+      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (verifAcces.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const resultat = await pool.query(
+      'UPDATE comptes SET est_favori = NOT est_favori WHERE id = $1 RETURNING *',
       [req.params.id]
     );
 

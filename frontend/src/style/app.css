@@ -394,3 +394,13 @@
 .montant-revenu {
   color: #8fbf8f;
 }
+
+.btn-favori {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listerComptesApi, creerCompteApi, archiverCompteApi } from '../api/comptes';
+import { listerComptesApi, creerCompteApi, archiverCompteApi, basculerFavoriApi } from '../api/comptes';
 import { listerUtilisateursApi } from '../api/utilisateurs';
 import { useAuth } from '../context/useAuth';
 import { listerSoldesApi } from '../api/dashboard';
@@ -74,6 +74,16 @@ function Comptes() {
     }
   }
 
+  async function gererFavori(id) {
+    try {
+      await basculerFavoriApi(id);
+      const donneesComptes = await listerComptesApi();
+      setComptes(donneesComptes);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -88,7 +98,12 @@ function Comptes() {
           <li key={compte.id} className="carte-item">
             <div className="carte-item-entete">
               <strong>{compte.nom}</strong>
-              <button className="bouton-discret" onClick={() => gererArchivage(compte.id)}>Archiver</button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button className="btn-favori" onClick={() => gererFavori(compte.id)} title="Favori">
+                  {compte.est_favori ? '★' : '☆'}
+                </button>
+                <button className="bouton-discret" onClick={() => gererArchivage(compte.id)}>Archiver</button>
+              </div>
             </div>
             <span className="carte-detail">{compte.type_compte}</span>
             <span className={`carte-montant ${(soldes[compte.id] ?? compte.solde_initial) < 0 ? 'montant-negatif' : ''}`}>

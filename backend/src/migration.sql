@@ -21,6 +21,7 @@ CREATE TABLE comptes (
     ),
     solde_initial INTEGER NOT NULL,
     est_archive BOOLEAN NOT NULL DEFAULT FALSE
+    est_favori BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- 3. Jonction Compte <-> Utilisateur (many-to-many : gère comptes perso ET partagés)
