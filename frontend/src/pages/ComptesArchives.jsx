@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listerComptesArchivesApi, desarchiverCompteApi, supprimerCompteDefinitifApi } from '../api/comptes';
+import { listerComptesArchivesApi, desarchiverCompteApi, supprimerCompteDefinitifApi, quitterCompteApi } from '../api/comptes';
 import '../style/app.css';
 
 function ComptesArchives() {
@@ -46,6 +46,20 @@ function ComptesArchives() {
     }
   }
 
+  async function gererQuitterCompte(id, nom) {
+    const confirmation = window.confirm(
+      `Quitter "${nom}" ? Ce compte deviendra personnel pour l'autre propriétaire, vous n'y aurez plus accès.`
+    );
+    if (!confirmation) return;
+
+    try {
+      await quitterCompteApi(id);
+      setComptes(comptes.filter((c) => c.id !== id));
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -65,7 +79,11 @@ function ComptesArchives() {
                 <strong>{compte.nom}</strong>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button className="bouton-discret" onClick={() => gererDesarchivage(compte.id)}>Désarchiver</button>
-                  <button className="bouton-discret" onClick={() => gererSuppression(compte.id, compte.nom)}>Supprimer</button>
+                  {compte.nb_proprietaires > 1 ? (
+                    <button className="bouton-discret" onClick={() => gererQuitterCompte(compte.id, compte.nom)}>Quitter</button>
+                  ) : (
+                    <button className="bouton-discret" onClick={() => gererSuppression(compte.id, compte.nom)}>Supprimer</button>
+                  )}
                 </div>
               </div>
               <span className="carte-detail">{compte.type_compte}</span>

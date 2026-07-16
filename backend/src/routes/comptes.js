@@ -4,7 +4,7 @@ const verifierToken = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /comptes - liste les comptes visibles par l'utilisateur connecté
+// GET /comptes - liste les comptes visibles par l'utilisateur connecté (non archivés par lui)
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -12,7 +12,7 @@ router.get('/', verifierToken, async (req, res, next) => {
          (SELECT COUNT(*) FROM compte_utilisateurs cu2 WHERE cu2.compte_id = c.id) AS nb_proprietaires
        FROM comptes c
        JOIN compte_utilisateurs cu ON c.id = cu.compte_id
-       WHERE cu.utilisateur_id = $1 AND c.est_archive = FALSE
+       WHERE cu.utilisateur_id = $1 AND cu.est_archive = FALSE
        ORDER BY c.est_favori DESC, c.nom`,
       [req.utilisateur.id]
     );
@@ -22,18 +22,18 @@ router.get('/', verifierToken, async (req, res, next) => {
   }
 });
 
-// GET /comptes/archives - liste les comptes archivés de l'utilisateur
 router.get('/archives', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
-      `SELECT c.*
+      `SELECT c.*,
+         (SELECT COUNT(*) FROM compte_utilisateurs cu2 WHERE cu2.compte_id = c.id) AS nb_proprietaires
        FROM comptes c
        JOIN compte_utilisateurs cu ON c.id = cu.compte_id
-       WHERE cu.utilisateur_id = $1 AND c.est_archive = TRUE
+       WHERE cu.utilisateur_id = $1 AND cu.est_archive = TRUE
        ORDER BY c.nom`,
       [req.utilisateur.id]
     );
-    res.json(resultat.rows);
+    res.json(resultat.rows.map((r) => ({ ...r, nb_proprietaires: Number(r.nb_proprietaires) })));
   } catch (erreur) {
     next(erreur);
   }
@@ -59,6 +59,32 @@ router.get('/:id', verifierToken, async (req, res, next) => {
     next(erreur);
   }
 });
+
+// POST /comptes/:id/quitter - je quitte ce compte partagé (il devient perso pour l'autre)
+router.post('/:id/quitter', verifierToken, async (req, res, next) => {
+  try {
+    const proprietaires = await pool.query(
+      'SELECT COUNT(*) AS total FROM compte_utilisateurs WHERE compte_id = $1',
+      [req.params.id]
+    );
+    if (Number(proprietaires.rows[0].total) <= 1) {
+      return res.status(400).json({ erreur: 'Vous êtes le seul propriétaire : utilisez la suppression définitive plutôt que quitter.' });
+    }
+
+    const resultat = await pool.query(
+      'DELETE FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2 RETURNING *',
+      [req.params.id, req.utilisateur.id]
+    );
+    if (resultat.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    res.json({ message: 'Vous avez quitté ce compte.' });
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 
 // POST /comptes - création d'un compte perso ou partagé
 router.post('/', verifierToken, async (req, res, next) => {
@@ -124,23 +150,17 @@ router.put('/:id', verifierToken, async (req, res, next) => {
   }
 });
 
-// PATCH /comptes/:id/archiver - archivage plutôt que suppression
+// PATCH /comptes/:id/archiver
 router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
   try {
-    const verifAcces = await pool.query(
-      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+    const resultat = await pool.query(
+      'UPDATE compte_utilisateurs SET est_archive = TRUE WHERE compte_id = $1 AND utilisateur_id = $2 RETURNING *',
       [req.params.id, req.utilisateur.id]
     );
-    if (verifAcces.rows.length === 0) {
+    if (resultat.rows.length === 0) {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
     }
-
-    const resultat = await pool.query(
-      'UPDATE comptes SET est_archive = TRUE WHERE id = $1 RETURNING *',
-      [req.params.id]
-    );
-
-    res.json(resultat.rows[0]);
+    res.json({ message: 'Compte archivé.' });
   } catch (erreur) {
     next(erreur);
   }
@@ -149,20 +169,15 @@ router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
 // PATCH /comptes/:id/desarchiver
 router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
   try {
-    const verifAcces = await pool.query(
-      'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
+    const resultat = await pool.query(
+      'UPDATE compte_utilisateurs SET est_archive = FALSE WHERE compte_id = $1 AND utilisateur_id = $2 RETURNING *',
       [req.params.id, req.utilisateur.id]
     );
-    if (verifAcces.rows.length === 0) {
+    if (resultat.rows.length === 0) {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
     }
-
-    const resultat = await pool.query(
-      'UPDATE comptes SET est_archive = FALSE WHERE id = $1 RETURNING *',
-      [req.params.id]
-    );
-
-    res.json(resultat.rows[0]);
+    const compte = await pool.query('SELECT * FROM comptes WHERE id = $1', [req.params.id]);
+    res.json(compte.rows[0]);
   } catch (erreur) {
     next(erreur);
   }
@@ -208,7 +223,6 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
   }
 });
 
-// DELETE /comptes/:id/definitif - vide le compte de ses transactions puis le supprime
 router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -218,6 +232,14 @@ router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
     );
     if (verifAcces.rows.length === 0) {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const proprietaires = await client.query(
+      'SELECT COUNT(*) AS total FROM compte_utilisateurs WHERE compte_id = $1',
+      [req.params.id]
+    );
+    if (Number(proprietaires.rows[0].total) > 1) {
+      return res.status(400).json({ erreur: 'Ce compte est partagé. Quittez-le d\'abord, ou attendez que l\'autre personne le quitte, avant de le supprimer définitivement.' });
     }
 
     await client.query('BEGIN');

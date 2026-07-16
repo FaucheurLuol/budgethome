@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { listerComptesApi, creerCompteApi, archiverCompteApi, basculerFavoriApi } from '../api/comptes';
+import { 
+  listerComptesApi, creerCompteApi, archiverCompteApi, 
+  basculerFavoriApi, quitterCompteApi
+} from '../api/comptes';
 import { listerUtilisateursApi } from '../api/utilisateurs';
 import { useAuth } from '../context/useAuth';
 import { listerSoldesApi } from '../api/dashboard';
@@ -84,6 +87,20 @@ function Comptes() {
     }
   }
 
+  async function gererQuitterCompte(id, nom) {
+    const confirmation = window.confirm(
+      `Quitter "${nom}" ? Ce compte deviendra personnel pour l'autre propriétaire, vous n'y aurez plus accès.`
+    );
+    if (!confirmation) return;
+
+    try {
+      await quitterCompteApi(id);
+      setComptes(comptes.filter((c) => c.id !== id));
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -103,6 +120,9 @@ function Comptes() {
                   {compte.est_favori ? '★' : '☆'}
                 </button>
                 <button className="bouton-discret" onClick={() => gererArchivage(compte.id)}>Archiver</button>
+                {compte.nb_proprietaires > 1 && (
+                  <button className="bouton-discret" onClick={() => gererQuitterCompte(compte.id, compte.nom)}>Quitter</button>
+                )}
               </div>
             </div>
             <span className="carte-detail">{compte.type_compte}</span>

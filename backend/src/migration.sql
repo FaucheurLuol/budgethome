@@ -20,7 +20,7 @@ CREATE TABLE utilisateurs (
     foyer_id INTEGER REFERENCES foyers(id) ON DELETE SET NULL
 );
 
--- 2. Comptes
+-- 3. Comptes
 CREATE TABLE comptes (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
@@ -28,14 +28,16 @@ CREATE TABLE comptes (
         type_compte IN ('Compte courant', 'Livret A', 'PEL', 'LDD', 'Action', 'Crypto')
     ),
     solde_initial INTEGER NOT NULL,
-    est_archive BOOLEAN NOT NULL DEFAULT FALSE,
     est_favori BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- 3. Jonction Compte <-> Utilisateur (many-to-many : gère comptes perso ET partagés)
+-- 4. Jonction Compte <-> Utilisateur (many-to-many : gère comptes perso ET partagés)
+-- est_archive est ici, par utilisateur : chacun peut archiver "sa vue" d'un compte
+-- partagé sans affecter l'autre propriétaire.
 CREATE TABLE compte_utilisateurs (
     compte_id INTEGER NOT NULL REFERENCES comptes(id) ON DELETE CASCADE,
     utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    est_archive BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (compte_id, utilisateur_id)
 );
 

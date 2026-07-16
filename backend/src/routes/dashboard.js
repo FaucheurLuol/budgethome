@@ -16,7 +16,7 @@ router.get('/soldes', verifierToken, async (req, res, next) => {
        FROM comptes c
        JOIN compte_utilisateurs cu ON cu.compte_id = c.id
        LEFT JOIN transactions t ON t.compte_id = c.id AND t.est_simulee = FALSE
-       WHERE cu.utilisateur_id = $1 AND c.est_archive = FALSE
+       WHERE cu.utilisateur_id = $1 AND cu.est_archive = FALSE
        GROUP BY c.id
        ORDER BY c.type_compte, c.nom`,
       [req.utilisateur.id]
@@ -37,7 +37,7 @@ router.get('/evolution-comptes-courants', verifierToken, async (req, res, next) 
       `SELECT c.id, c.nom, c.solde_initial
        FROM comptes c
        JOIN compte_utilisateurs cu ON cu.compte_id = c.id
-       WHERE cu.utilisateur_id = $1 AND c.type_compte = 'Compte courant' AND c.est_archive = FALSE
+       WHERE cu.utilisateur_id = $1 AND c.type_compte = 'Compte courant' AND cu.est_archive = FALSE
        ORDER BY c.nom`,
       [req.utilisateur.id]
     );

@@ -85,3 +85,13 @@ export async function basculerFavoriApi(id) {
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la mise à jour du favori.');
   return donnees;
 }
+
+export async function quitterCompteApi(id) {
+  const reponse = await fetch(`${API_URL}/comptes/${id}/quitter`, {
+    method: 'POST',
+    headers: { ...getAuthHeader() },
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la sortie du compte.');
+  return donnees;
+}
