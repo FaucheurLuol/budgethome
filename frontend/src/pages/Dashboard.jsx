@@ -11,6 +11,7 @@ import { obtenirSoldeRestantApi } from '../api/budgets';
 import { listerObjectifsApi } from '../api/objectifs';
 import '../style/app.css';
 import '../style/dashboard.css';
+import '../style/tableur.css';
 
 const COULEURS = ['#C9A227', '#6B8F87', '#8fbf8f', '#d98b7a', '#9CA69F', '#7a9bd9'];
 
@@ -147,7 +148,7 @@ function Dashboard() {
         {soldes.map((c) => (
           <div key={c.id} className="carte-solde">
             <span>{c.nom}</span>
-            <strong>{(c.solde_actuel / 100).toFixed(2)} €</strong>
+            <strong className={c.solde_actuel < 0 ? 'montant-negatif' : ''}>{(c.solde_actuel / 100).toFixed(2)} €</strong>
           </div>
         ))}
       </div>

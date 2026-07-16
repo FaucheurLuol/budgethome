@@ -385,3 +385,12 @@
 .ligne-resultat-personne .bouton-discret {
   align-self: center;
 }
+
+.montant-negatif,
+.montant-depense {
+  color: #d98b7a !important;
+}
+
+.montant-revenu {
+  color: #8fbf8f;
+}

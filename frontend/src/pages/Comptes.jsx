@@ -91,7 +91,9 @@ function Comptes() {
               <button className="bouton-discret" onClick={() => gererArchivage(compte.id)}>Archiver</button>
             </div>
             <span className="carte-detail">{compte.type_compte}</span>
-            <span className="carte-montant">{((soldes[compte.id] ?? compte.solde_initial) / 100).toFixed(2)} €</span>
+            <span className={`carte-montant ${(soldes[compte.id] ?? compte.solde_initial) < 0 ? 'montant-negatif' : ''}`}>
+              {((soldes[compte.id] ?? compte.solde_initial) / 100).toFixed(2)} €
+            </span>
           </li>
         ))}
       </ul>

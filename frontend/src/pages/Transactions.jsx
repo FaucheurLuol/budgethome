@@ -333,12 +333,16 @@ function Transactions() {
       <div className="carte-solde-principale">
         <div className="solde-bloc">
           <span className="solde-label">Solde réel</span>
-          <strong className="solde-valeur">{(soldeReelActuel / 100).toFixed(2)} €</strong>
+          <strong className={`solde-valeur ${soldeReelActuel < 0 ? 'montant-negatif' : ''}`}>
+            {(soldeReelActuel / 100).toFixed(2)} €
+          </strong>
         </div>
         {soldeProjeteActuel !== soldeReelActuel && (
           <div className="solde-bloc solde-projete">
             <span className="solde-label">Solde projeté</span>
-            <strong className="solde-valeur">{(soldeProjeteActuel / 100).toFixed(2)} €</strong>
+            <strong className={`solde-valeur ${soldeProjeteActuel < 0 ? 'montant-negatif' : ''}`}>
+              {(soldeProjeteActuel / 100).toFixed(2)} €
+            </strong>
           </div>
         )}
       </div>
