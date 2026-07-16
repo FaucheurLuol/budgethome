@@ -30,3 +30,6 @@ dist-ssr
 *.sln
 *.sw?
 Thumbs.
+
+# Dossier précis
+backend/src/script_to_bdd
