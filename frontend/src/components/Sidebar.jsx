@@ -13,12 +13,6 @@ function Sidebar({ ouverte, fermer }) {
         <NavLink to="/dashboard" onClick={fermer} className="sidebar-lien">
           Dashboard
         </NavLink>
-        <NavLink to="/comptes" onClick={fermer} className="sidebar-lien">
-          Comptes
-        </NavLink>
-        <NavLink to="/categories" onClick={fermer} className="sidebar-lien">
-          Catégories
-        </NavLink>
         <NavLink to="/transactions" onClick={fermer} className="sidebar-lien">
           Transactions
         </NavLink>
@@ -28,11 +22,17 @@ function Sidebar({ ouverte, fermer }) {
         <NavLink to="/objectifs" onClick={fermer} className="sidebar-lien">
           Objectifs
         </NavLink>
+        <NavLink to="/categories" onClick={fermer} className="sidebar-lien">
+          Catégories
+        </NavLink>
         <NavLink to="/modeles" onClick={fermer} className="sidebar-lien">
           Modèles
         </NavLink>
         <NavLink to="/repartition" onClick={fermer} className="sidebar-lien">
           Répartition
+        </NavLink>
+        <NavLink to="/comptes" onClick={fermer} className="sidebar-lien">
+          Comptes
         </NavLink>
         <NavLink to="/comptes-archives" onClick={fermer} className="sidebar-lien">
           Archives
