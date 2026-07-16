@@ -31,3 +31,14 @@ export async function supprimerModeleApi(id) {
     throw new Error(donnees.erreur || 'Erreur lors de la suppression du modèle.');
   }
 }
+
+export async function creerOuRemplacerModeleCompteCommunApi(compteId, montant) {
+  const reponse = await fetch(`${API_URL}/modeles/virement-compte-commun`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify({ compte_id: compteId, montant }),
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la création du modèle.');
+  return donnees;
+}

@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
-import { calculerRepartitionApi, listerHistoriqueRepartitionApi, activerRepartitionApi, supprimerRepartitionApi } from '../api/repartition';
+import { 
+  calculerRepartitionApi, listerHistoriqueRepartitionApi, activerRepartitionApi, 
+  supprimerRepartitionApi 
+} from '../api/repartition';
 import { listerUtilisateursApi } from '../api/utilisateurs';
+import { listerComptesApi } from '../api/comptes';
+import { creerOuRemplacerModeleCompteCommunApi } from '../api/modeles';
+import { useAuth } from '../context/useAuth';
 import '../style/app.css';
 import '../style/tableur.css';
 
@@ -18,24 +24,30 @@ function moisActuelISO() {
 }
 
 function Repartition() {
+  const { utilisateur } = useAuth();
   const [mois, setMois] = useState(moisActuelISO());
   const [revenus, setRevenus] = useState([ligneRevenuVide(), ligneRevenuVide()]);
   const [depenses, setDepenses] = useState([ligneVide()]);
   const [resultat, setResultat] = useState(null);
   const [historique, setHistorique] = useState([]);
   const [utilisateurs, setUtilisateurs] = useState([]);
+  const [comptes, setComptes] = useState([]);
   const [chargement, setChargement] = useState(true);
+  const [compteChoisiParPersonne, setCompteChoisiParPersonne] = useState({});
   const [erreur, setErreur] = useState('');
+  const [messageModele, setMessageModele] = useState('');
 
   useEffect(() => {
     async function chargerInit() {
       try {
-        const [donneesHistorique, donneesUtilisateurs] = await Promise.all([
+        const [donneesHistorique, donneesUtilisateurs, donneesComptes] = await Promise.all([
           listerHistoriqueRepartitionApi(),
           listerUtilisateursApi(),
+          listerComptesApi(),
         ]);
         setHistorique(donneesHistorique);
         setUtilisateurs(donneesUtilisateurs);
+        setComptes(donneesComptes);
       } catch (err) {
         setErreur(err.message);
       } finally {
@@ -133,6 +145,25 @@ function Repartition() {
   }
 
   const repartitionActive = historique.find((r) => r.est_active);
+  const mesComptesCourants = comptes.filter((c) => c.type_compte === 'Compte courant' && c.nb_proprietaires === 1);
+
+  async function gererCreationModele(nomPersonne, partAVerser) {
+    setMessageModele('');
+    setErreur('');
+    const compteId = compteChoisiParPersonne[nomPersonne] || (mesComptesCourants[0]?.id);
+
+    if (!compteId) {
+      setErreur('Aucun compte courant personnel trouvé.');
+      return;
+    }
+
+    try {
+      await creerOuRemplacerModeleCompteCommunApi(compteId, partAVerser);
+      setMessageModele(`Modèle "Virement vers compte commun" mis à jour pour ${nomPersonne} (${(partAVerser / 100).toFixed(2)} €).`);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
 
   if (chargement) return <p>Chargement...</p>;
 
@@ -148,9 +179,32 @@ function Repartition() {
       {repartitionActive && (
         <div className="bloc-repartition">
           <h2>Répartition active — {repartitionActive.mois}</h2>
-          {repartitionActive.resultat.repartition.map((r) => (
-            <p key={r.nom}>{r.nom} : {(r.part_a_verser / 100).toFixed(2)} €</p>
-          ))}
+          {repartitionActive.resultat.repartition.map((r) => {
+            const estMoi = r.nom === utilisateur.nom;
+            return (
+              <div key={r.nom} className="ligne-resultat-personne">
+                <p>{r.nom} : {(r.part_a_verser / 100).toFixed(2)} €</p>
+                {estMoi && mesComptesCourants.length > 1 && (
+                  <select
+                    value={compteChoisiParPersonne[r.nom] || mesComptesCourants[0]?.id}
+                    onChange={(e) => setCompteChoisiParPersonne({ ...compteChoisiParPersonne, [r.nom]: e.target.value })}
+                  >
+                    {mesComptesCourants.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nom}</option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  className="bouton-discret"
+                  disabled={!estMoi}
+                  onClick={() => gererCreationModele(r.nom, r.part_a_verser)}
+                >
+                  {estMoi ? 'Créer le modèle' : 'Réservé à ' + r.nom}
+                </button>
+              </div>
+            );
+          })}
+          {messageModele && <p style={{ color: 'var(--color-accent)' }}>{messageModele}</p>}
         </div>
       )}
 

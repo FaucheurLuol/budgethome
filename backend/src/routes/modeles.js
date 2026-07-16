@@ -91,6 +91,67 @@ router.post('/', verifierToken, async (req, res, next) => {
   }
 });
 
+// POST /modeles/virement-compte-commun - crée ou remplace le modèle "Virement vers compte commun"
+router.post('/virement-compte-commun', verifierToken, async (req, res, next) => {
+  try {
+    const { compte_id, montant } = req.body;
+
+    if (!compte_id || montant === undefined) {
+      return res.status(400).json({ erreur: 'compte_id et montant sont requis.' });
+    }
+
+    const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    // Catégorie "Compte commun" dédiée (dépense)
+    const categorieExistante = await pool.query(
+      `SELECT id FROM categories
+       WHERE utilisateur_id = $1 AND type_categorie = 'depense' AND nom = 'Compte commun'
+       LIMIT 1`,
+      [req.utilisateur.id]
+    );
+    let categorieId;
+    if (categorieExistante.rows.length > 0) {
+      categorieId = categorieExistante.rows[0].id;
+    } else {
+      const nouvelleCategorie = await pool.query(
+        `INSERT INTO categories (nom, utilisateur_id, type_categorie) VALUES ('Compte commun', $1, 'depense') RETURNING id`,
+        [req.utilisateur.id]
+      );
+      categorieId = nouvelleCategorie.rows[0].id;
+    }
+
+    // Cherche si le modèle "Virement vers compte commun" existe déjà pour ce compte
+    const modeleExistant = await pool.query(
+      `SELECT id FROM modeles_transactions
+       WHERE compte_id = $1 AND utilisateur_id = $2 AND nom = 'Virement vers compte commun'`,
+      [compte_id, req.utilisateur.id]
+    );
+
+    let resultat;
+    if (modeleExistant.rows.length > 0) {
+      resultat = await pool.query(
+        `UPDATE modeles_transactions SET montant = $1, categorie_id = $2 WHERE id = $3 RETURNING *`,
+        [montant, categorieId, modeleExistant.rows[0].id]
+      );
+    } else {
+      resultat = await pool.query(
+        `INSERT INTO modeles_transactions
+         (utilisateur_id, compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement)
+         VALUES ($1, $2, 'Virement vers compte commun', $3, $4, 'depense', 'Virement')
+         RETURNING *`,
+        [req.utilisateur.id, compte_id, categorieId, montant]
+      );
+    }
+
+    res.status(200).json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 // PUT /modeles/:id - modification
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {

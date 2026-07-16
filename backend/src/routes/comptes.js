@@ -8,14 +8,15 @@ const router = express.Router();
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
-      `SELECT c.*
+      `SELECT c.*,
+         (SELECT COUNT(*) FROM compte_utilisateurs cu2 WHERE cu2.compte_id = c.id) AS nb_proprietaires
        FROM comptes c
        JOIN compte_utilisateurs cu ON c.id = cu.compte_id
        WHERE cu.utilisateur_id = $1 AND c.est_archive = FALSE
        ORDER BY c.nom`,
       [req.utilisateur.id]
     );
-    res.json(resultat.rows);
+    res.json(resultat.rows.map((r) => ({ ...r, nb_proprietaires: Number(r.nb_proprietaires) })));
   } catch (erreur) {
     next(erreur);
   }
