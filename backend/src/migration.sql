@@ -4,12 +4,20 @@
 -- Ordre de création respectant les dépendances de clés étrangères
 -- ============================================================
 
--- 1. Utilisateurs
+-- 1. Foyers (isolation entre couples/foyers utilisant l'application)
+CREATE TABLE foyers (
+    id SERIAL PRIMARY KEY,
+    code_invitation VARCHAR(12) UNIQUE NOT NULL,
+    cree_le TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- 2. Utilisateurs
 CREATE TABLE utilisateurs (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    mot_de_passe VARCHAR(255) NOT NULL
+    mot_de_passe VARCHAR(255) NOT NULL,
+    foyer_id INTEGER REFERENCES foyers(id) ON DELETE SET NULL
 );
 
 -- 2. Comptes
@@ -20,7 +28,7 @@ CREATE TABLE comptes (
         type_compte IN ('Compte courant', 'Livret A', 'PEL', 'LDD', 'Action', 'Crypto')
     ),
     solde_initial INTEGER NOT NULL,
-    est_archive BOOLEAN NOT NULL DEFAULT FALSE
+    est_archive BOOLEAN NOT NULL DEFAULT FALSE,
     est_favori BOOLEAN NOT NULL DEFAULT FALSE
 );
 

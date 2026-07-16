@@ -12,6 +12,7 @@ const repartitionRoutes = require('./routes/repartition');
 const utilisateursRoutes = require('./routes/utilisateurs');
 const modelesRoutes = require('./routes/modeles');
 const dashboardRoutes = require('./routes/dashboard');
+const foyersRoutes = require('./routes/foyers');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use('/repartition', repartitionRoutes);
 app.use('/utilisateurs', utilisateursRoutes);
 app.use('/modeles', modelesRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/foyers', foyersRoutes);
 
 app.use(gestionErreurs);
 module.exports = app;

@@ -13,6 +13,7 @@ import Objectifs from './pages/Objectifs';
 import Modeles from './pages/Modeles';
 import Repartition from './pages/Repartition';
 import ComptesArchives from './pages/ComptesArchives';
+import Profil from './pages/Profil';
 
 function App() {
   return (
@@ -90,6 +91,14 @@ function App() {
           element={
             <RouteProtegee>
               <ComptesArchives />
+            </RouteProtegee>
+          }
+        />
+        <Route
+          path="/profil"
+          element={
+            <RouteProtegee>
+              <Profil />
             </RouteProtegee>
           }
         />

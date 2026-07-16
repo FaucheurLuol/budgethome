@@ -40,7 +40,9 @@ function Sidebar({ ouverte, fermer }) {
       </nav>
 
       <div className="sidebar-utilisateur">
-        <span>{utilisateur?.nom}</span>
+        <NavLink to="/profil" onClick={fermer} className="sidebar-lien">
+          <span>{utilisateur?.nom}</span>
+        </NavLink>
         <button onClick={deconnexion} className="sidebar-deconnexion">
           Déconnexion
         </button>
