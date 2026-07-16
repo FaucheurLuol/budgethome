@@ -14,6 +14,21 @@ router.post('/inscription', async (req, res, next) => {
       return res.status(400).json({ erreur: 'Nom, email et mot de passe sont requis.' });
     }
 
+    const nomRegex = /^[a-zA-ZÀ-ÿ\s'-]{2,50}$/;
+    if (!nomRegex.test(nom)) {
+      return res.status(400).json({ erreur: 'Le nom doit contenir entre 2 et 50 caractères alphabétiques, espaces, apostrophes ou tirets.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ erreur: 'Adresse email invalide.' });
+    }
+
+    const motDePasseRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`])[A-Za-z\d!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`]{14,}$/;
+    if (!motDePasseRegex.test(mot_de_passe)) {
+      return res.status(400).json({ erreur: 'Le mot de passe doit contenir au moins 14 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.' });
+    }
+
     const hash = await bcrypt.hash(mot_de_passe, 10);
 
     const resultat = await pool.query(
