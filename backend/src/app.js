@@ -1,4 +1,5 @@
 const express = require('express');
+const helmet = require('helmet');
 const cors = require('cors');
 const verifierToken = require('./middleware/auth');
 const gestionErreurs = require('./middleware/erreurs');
@@ -16,6 +17,7 @@ const foyersRoutes = require('./routes/foyers');
 
 const app = express();
 
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use('/auth', authRoutes);
