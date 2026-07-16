@@ -18,7 +18,14 @@ const foyersRoutes = require('./routes/foyers');
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+const originesAutorisees = process.env.FRONTEND_URL
+  ? [process.env.FRONTEND_URL]
+  : ['http://localhost:5173'];
+
+app.use(cors({
+  origin: originesAutorisees,
+  credentials: true,
+}));
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/comptes', comptesRoutes);
