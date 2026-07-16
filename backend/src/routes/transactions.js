@@ -426,4 +426,35 @@ router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
   }
 });
 
+// PATCH /transactions/:id/valider-simulation - passe une transaction simulée en réelle
+router.patch('/:id/valider-simulation', verifierToken, async (req, res, next) => {
+  try {
+    const resultatExistant = await pool.query(
+      'SELECT compte_id, est_simulee FROM transactions WHERE id = $1',
+      [req.params.id]
+    );
+    if (resultatExistant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Transaction introuvable.' });
+    }
+
+    const acces = await verifierAccesCompte(resultatExistant.rows[0].compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Transaction introuvable.' });
+    }
+
+    if (!resultatExistant.rows[0].est_simulee) {
+      return res.status(400).json({ erreur: 'Cette transaction est déjà réelle.' });
+    }
+
+    const resultat = await pool.query(
+      'UPDATE transactions SET est_simulee = FALSE WHERE id = $1 RETURNING *',
+      [req.params.id]
+    );
+
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 module.exports = router;

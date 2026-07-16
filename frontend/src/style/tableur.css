@@ -319,3 +319,17 @@
 .btn-supprimer-ligne:hover {
   color: #d98b7a;
 }
+
+.btn-valider-simulation {
+  background: none;
+  border: none;
+  color: var(--color-accent-soft);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  transition: color 0.15s ease;
+}
+
+.btn-valider-simulation:hover {
+  color: var(--color-accent);
+}

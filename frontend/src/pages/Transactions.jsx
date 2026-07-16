@@ -5,6 +5,7 @@ import { listerObjectifsApi, creerAllocationApi } from '../api/objectifs';
 import {
   listerTransactionsApi, creerTransactionApi, supprimerTransactionApi,
   creerRetraitEpargneApi, creerVirementEpargneApi, creerVirementVersCourantApi,
+  validerSimulationApi,
 } from '../api/transactions';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import { listerModelesApi } from '../api/modeles';
@@ -153,8 +154,6 @@ function Transactions() {
 
       const montantCentimes = Math.round(parseFloat(nouvelleLigne.montant) * 100);
 
-      // Une simulation ne déclenche JAMAIS les automatisations de virement,
-      // même si les cases correspondantes sont cochées.
       if (nouvelleLigne.est_simulee) {
         if (!nouvelleLigne.categorie_id && !nouvelleLigne.est_virement_epargne) {
           setErreur('Une catégorie est requise pour simuler une transaction.');
@@ -276,6 +275,15 @@ function Transactions() {
     }
   }
 
+  async function gererValidationSimulation(id) {
+    try {
+      await validerSimulationApi(id);
+      chargerTransactions();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   function majNouvelleLigne(champ, valeur) {
     setNouvelleLigne((precedent) => ({
       ...precedent,
@@ -382,7 +390,7 @@ function Transactions() {
               {estCompteEpargne && <th style={{ width: '16%' }}>Objectif</th>}
               <th style={{ width: '10%' }}>Montant</th>
               <th style={{ width: '10%' }}>Solde</th>
-              <th style={{ width: '5%' }}></th>
+              <th style={{ width: '7%' }}></th>
               {!estCompteEpargne && <th style={{ width: '8%' }}>Simuler</th>}
             </tr>
           </thead>
@@ -568,9 +576,23 @@ function Transactions() {
                 </td>
                 <td className="solde-cell">{(t.soldeReel / 100).toFixed(2)} €</td>
                 <td>
-                  <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)}>✕</button>
+                  <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)} title='Supprimer'>✕</button>
                 </td>
-                {!estCompteEpargne && <td>{t.est_simulee ? '✓' : ''}</td>}
+                {!estCompteEpargne && (
+                  <td>
+                    {t.est_simulee ? (
+                      <button
+                        className="btn-valider-simulation"
+                        onClick={() => gererValidationSimulation(t.id)}
+                        title="Passer en réelle"
+                      >
+                        ✓
+                      </button>
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
