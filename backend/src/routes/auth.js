@@ -2,11 +2,12 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
+const limiteurAuth = require('../middleware/limiteurAuth');
 
 const router = express.Router();
 
 // Inscription
-router.post('/inscription', async (req, res, next) => {
+router.post('/inscription', limiteurAuth, async (req, res, next) => {
   try {
     const { nom, email, mot_de_passe } = req.body;
 
@@ -51,7 +52,7 @@ router.post('/inscription', async (req, res, next) => {
 });
 
 // Connexion
-router.post('/connexion', async (req, res, next) => {
+router.post('/connexion', limiteurAuth, async (req, res, next) => {
   try {
     const { email, mot_de_passe } = req.body;
 
