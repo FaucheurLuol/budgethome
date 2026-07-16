@@ -7,7 +7,7 @@ function Categories() {
   const [categoriesPlates, setCategoriesPlates] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
-
+  const [estRecurrente, setEstRecurrente] = useState(false); 
   const [nom, setNom] = useState('');
   const [typeCategorie, setTypeCategorie] = useState('depense');
   const [parentId, setParentId] = useState('');
@@ -36,9 +36,11 @@ function Categories() {
         nom,
         type_categorie: typeCategorie,
         parent_id: parentId ? Number(parentId) : null,
+        est_recurrente: estRecurrente,
       });
       setNom('');
       setParentId('');
+      setEstRecurrente(false);
       chargerCategories();
     } catch (err) {
       setErreur(err.message);
@@ -114,6 +116,15 @@ function Categories() {
             <option key={cat.id} value={cat.id}>{cat.nom}</option>
           ))}
         </select>
+
+        <label className="champ-checkbox">
+          <input
+            type="checkbox"
+            checked={estRecurrente}
+            onChange={(e) => setEstRecurrente(e.target.checked)}
+          />
+          Dépense/revenu récurrent (mensuel)
+        </label>
 
         <button className="btn-primary" type="submit">Créer</button>
       </form>

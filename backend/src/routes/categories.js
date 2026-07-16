@@ -4,13 +4,31 @@ const verifierToken = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /categories - liste les catégories de l'utilisateur connecté
+async function obtenirFoyerId(utilisateurId) {
+  const resultat = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [utilisateurId]);
+  return resultat.rows[0].foyer_id;
+}
+
+// GET /categories - partagées par foyer, ou propres à moi si pas de foyer
 router.get('/', verifierToken, async (req, res, next) => {
   try {
-    const resultat = await pool.query(
-      'SELECT * FROM categories WHERE utilisateur_id = $1 ORDER BY nom',
-      [req.utilisateur.id]
-    );
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
+    let resultat;
+    if (foyerId) {
+      resultat = await pool.query(
+        `SELECT c.* FROM categories c
+         JOIN utilisateurs u ON u.id = c.utilisateur_id
+         WHERE c.foyer_id = $1 OR (c.utilisateur_id = $2 AND c.foyer_id IS NULL)
+         ORDER BY c.nom`,
+        [foyerId, req.utilisateur.id]
+      );
+    } else {
+      resultat = await pool.query(
+        'SELECT * FROM categories WHERE utilisateur_id = $1 ORDER BY nom',
+        [req.utilisateur.id]
+      );
+    }
     res.json(resultat.rows);
   } catch (erreur) {
     next(erreur);
@@ -20,16 +38,19 @@ router.get('/', verifierToken, async (req, res, next) => {
 // POST /categories - création (racine ou sous-catégorie)
 router.post('/', verifierToken, async (req, res, next) => {
   try {
-    const { nom, parent_id, type_categorie } = req.body;
+    const { nom, parent_id, type_categorie, est_recurrente } = req.body;
 
     if (!nom || !type_categorie) {
       return res.status(400).json({ erreur: 'Le nom et le type de catégorie sont requis.' });
     }
 
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
     if (parent_id) {
       const verifParent = await pool.query(
-        'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
-        [parent_id, req.utilisateur.id]
+        `SELECT 1 FROM categories
+         WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))`,
+        [parent_id, foyerId, req.utilisateur.id]
       );
       if (verifParent.rows.length === 0) {
         return res.status(400).json({ erreur: 'Catégorie parente introuvable.' });
@@ -37,8 +58,8 @@ router.post('/', verifierToken, async (req, res, next) => {
     }
 
     const resultat = await pool.query(
-      'INSERT INTO categories (nom, parent_id, utilisateur_id, type_categorie) VALUES ($1, $2, $3, $4) RETURNING *',
-      [nom, parent_id || null, req.utilisateur.id, type_categorie]
+      'INSERT INTO categories (nom, parent_id, utilisateur_id, foyer_id, type_categorie, est_recurrente) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [nom, parent_id || null, req.utilisateur.id, foyerId, type_categorie, est_recurrente || false]
     );
 
     res.status(201).json(resultat.rows[0]);
@@ -50,19 +71,21 @@ router.post('/', verifierToken, async (req, res, next) => {
 // PUT /categories/:id - modification
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
-    const { nom, parent_id, type_categorie } = req.body;
+    const { nom, parent_id, type_categorie, est_recurrente } = req.body;
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
     const verifAcces = await pool.query(
-      'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
-      [req.params.id, req.utilisateur.id]
+      `SELECT 1 FROM categories
+       WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))`,
+      [req.params.id, foyerId, req.utilisateur.id]
     );
     if (verifAcces.rows.length === 0) {
       return res.status(404).json({ erreur: 'Catégorie introuvable.' });
     }
 
     const resultat = await pool.query(
-      'UPDATE categories SET nom = $1, parent_id = $2, type_categorie = $3 WHERE id = $4 RETURNING *',
-      [nom, parent_id || null, type_categorie, req.params.id]
+      'UPDATE categories SET nom = $1, parent_id = $2, type_categorie = $3, est_recurrente = $4 WHERE id = $5 RETURNING *',
+      [nom, parent_id || null, type_categorie, est_recurrente || false, req.params.id]
     );
 
     res.json(resultat.rows[0]);
@@ -74,9 +97,12 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 // DELETE /categories/:id - suppression
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
     const verifAcces = await pool.query(
-      'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
-      [req.params.id, req.utilisateur.id]
+      `SELECT 1 FROM categories
+       WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))`,
+      [req.params.id, foyerId, req.utilisateur.id]
     );
     if (verifAcces.rows.length === 0) {
       return res.status(404).json({ erreur: 'Catégorie introuvable.' });
@@ -89,20 +115,24 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
   }
 });
 
-// POST /categories/epargne-defaut - garantit l'existence des catégories "Épargne" (dépense + revenu)
+// POST /categories/epargne-defaut - garantit l'existence des catégories "Épargne"
 router.post('/epargne-defaut', verifierToken, async (req, res, next) => {
   try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
     async function trouverOuCreer(typeCategorie) {
       const existante = await pool.query(
-        'SELECT * FROM categories WHERE utilisateur_id = $1 AND type_categorie = $2 AND nom = $3',
-        [req.utilisateur.id, typeCategorie, 'Épargne']
+        `SELECT * FROM categories
+         WHERE nom = 'Épargne' AND type_categorie = $1
+           AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))`,
+        [typeCategorie, foyerId, req.utilisateur.id]
       );
       if (existante.rows.length > 0) {
         return existante.rows[0];
       }
       const creee = await pool.query(
-        'INSERT INTO categories (nom, utilisateur_id, type_categorie) VALUES ($1, $2, $3) RETURNING *',
-        ['Épargne', req.utilisateur.id, typeCategorie]
+        'INSERT INTO categories (nom, utilisateur_id, foyer_id, type_categorie) VALUES ($1, $2, $3, $4) RETURNING *',
+        ['Épargne', req.utilisateur.id, foyerId, typeCategorie]
       );
       return creee.rows[0];
     }

@@ -28,13 +28,15 @@ router.get('/', verifierToken, async (req, res, next) => {
 
     const resultat = await pool.query(
       `SELECT
-         t.*,
-         a.objectif_id, o.nom AS objectif_nom, a.montant_fleche
-       FROM transactions t
-       LEFT JOIN allocations_epargne a ON a.transaction_id = t.id
-       LEFT JOIN objectifs_epargne o ON o.id = a.objectif_id
-       WHERE t.compte_id = $1
-       ORDER BY t.date DESC, t.id DESC`,
+        t.*,
+        c.est_recurrente AS categorie_recurrente,
+        a.objectif_id, o.nom AS objectif_nom, a.montant_fleche
+      FROM transactions t
+      JOIN categories c ON c.id = t.categorie_id
+      LEFT JOIN allocations_epargne a ON a.transaction_id = t.id
+      LEFT JOIN objectifs_epargne o ON o.id = a.objectif_id
+      WHERE t.compte_id = $1
+      ORDER BY t.date DESC, t.id DESC`,
       [compte_id]
     );
 

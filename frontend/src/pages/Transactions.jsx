@@ -129,7 +129,9 @@ function Transactions() {
       return [...accumulateur, { ...t, soldeReel, soldeProjete }];
     }, []);
 
-    return avecSolde.reverse();
+    const simulees = avecSolde.filter((t) => t.est_simulee).reverse();
+    const reelles = avecSolde.filter((t) => !t.est_simulee).reverse();
+    return [...simulees, ...reelles];
   }, [transactions, compte]);
 
   const soldeReelActuel = transactionsAvecSolde.length > 0
@@ -563,7 +565,7 @@ function Transactions() {
               )}
             </tr>
             {transactionsAvecSolde.map((t) => (
-              <tr key={t.id} className={t.est_simulee ? 'ligne-simulee' : ''}>
+              <tr key={t.id} className={`${t.est_simulee ? 'ligne-simulee' : ''} ${t.categorie_recurrente ? 'ligne-recurrente' : ''}`}>
                 <td>{t.date}</td>
                 <td>{t.type_transaction === 'revenu' ? 'Revenu' : 'Dépense'}</td>
                 <td>{categories.find((c) => c.id === t.categorie_id)?.nom || '—'}</td>

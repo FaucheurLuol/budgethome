@@ -32,9 +32,24 @@ router.post('/', verifierToken, async (req, res, next) => {
 // GET /repartition/historique - liste toutes les simulations passées
 router.get('/historique', verifierToken, async (req, res, next) => {
   try {
-    const resultat = await pool.query(
-      'SELECT * FROM repartitions_communes ORDER BY mois DESC, cree_le DESC'
-    );
+    const moi = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    const foyerId = moi.rows[0].foyer_id;
+
+    let resultat;
+    if (!foyerId) {
+      resultat = await pool.query(
+        'SELECT * FROM repartitions_communes WHERE utilisateur_id = $1 ORDER BY mois DESC, cree_le DESC',
+        [req.utilisateur.id]
+      );
+    } else {
+      resultat = await pool.query(
+        `SELECT rc.* FROM repartitions_communes rc
+         JOIN utilisateurs u ON u.id = rc.utilisateur_id
+         WHERE u.foyer_id = $1
+         ORDER BY rc.mois DESC, rc.cree_le DESC`,
+        [foyerId]
+      );
+    }
     res.json(resultat.rows);
   } catch (erreur) {
     next(erreur);
@@ -44,14 +59,26 @@ router.get('/historique', verifierToken, async (req, res, next) => {
 // GET /repartition/active - récupère la répartition actuellement active (pour le Dashboard)
 router.get('/active', verifierToken, async (req, res, next) => {
   try {
-    const resultat = await pool.query(
-      'SELECT * FROM repartitions_communes WHERE est_active = TRUE LIMIT 1'
-    );
+    const moi = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    const foyerId = moi.rows[0].foyer_id;
 
-    if (resultat.rows.length === 0) {
-      return res.json(null);
+    let resultat;
+    if (!foyerId) {
+      resultat = await pool.query(
+        'SELECT * FROM repartitions_communes WHERE est_active = TRUE AND utilisateur_id = $1 LIMIT 1',
+        [req.utilisateur.id]
+      );
+    } else {
+      resultat = await pool.query(
+        `SELECT rc.* FROM repartitions_communes rc
+         JOIN utilisateurs u ON u.id = rc.utilisateur_id
+         WHERE rc.est_active = TRUE AND u.foyer_id = $1
+         LIMIT 1`,
+        [foyerId]
+      );
     }
 
+    if (resultat.rows.length === 0) return res.json(null);
     res.json(resultat.rows[0]);
   } catch (erreur) {
     next(erreur);
