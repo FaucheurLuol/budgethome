@@ -335,5 +335,18 @@
 }
 
 .ligne-recurrente {
-  background-color: rgba(107, 143, 135, 0.08);
+  background-color: rgba(107, 143, 135, 0.15);
+  border-left: 3px solid var(--color-accent-soft);
+}
+
+.ligne-recurrente td {
+  color: var(--color-accent-soft);
+}
+
+.ligne-recurrente td.montant-depense {
+  color: #d98b7a;
+}
+
+.ligne-recurrente td.montant-revenu {
+  color: #8fbf8f;
 }
