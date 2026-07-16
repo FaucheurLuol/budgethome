@@ -63,9 +63,13 @@ router.post('/', verifierToken, async (req, res, next) => {
     }
 
     if (categorie_id) {
+      const foyerRes = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+      const foyerId = foyerRes.rows[0].foyer_id;
+
       const verifCategorie = await pool.query(
-        'SELECT 1 FROM categories WHERE id = $1 AND utilisateur_id = $2',
-        [categorie_id, req.utilisateur.id]
+        `SELECT 1 FROM categories
+        WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))`,
+        [categorie_id, foyerId, req.utilisateur.id]
       );
       if (verifCategorie.rows.length === 0) {
         return res.status(400).json({ erreur: 'Catégorie introuvable.' });
