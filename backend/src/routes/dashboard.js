@@ -103,13 +103,17 @@ router.get('/repartition', verifierToken, async (req, res, next) => {
     }
 
     const resultat = await pool.query(
-      `SELECT c.nom AS categorie, SUM(t.montant) AS total
+      `SELECT COALESCE(parent.nom, c.nom) AS categorie, SUM(t.montant) AS total
        FROM transactions t
        JOIN categories c ON c.id = t.categorie_id
+       LEFT JOIN categories parent ON parent.id = c.parent_id
        JOIN compte_utilisateurs cu ON cu.compte_id = t.compte_id
        WHERE cu.utilisateur_id = $1 AND t.type_transaction = $2
-         AND t.est_simulee = FALSE AND t.date >= $3 ${filtreCompte}
-       GROUP BY c.nom
+         AND t.est_simulee = FALSE AND t.date >= $3
+         AND c.nom != 'Non classé'
+         AND (parent.nom IS NULL OR parent.nom != 'Non classé')
+         ${filtreCompte}
+       GROUP BY COALESCE(parent.nom, c.nom)
        ORDER BY total DESC`,
       params
     );
