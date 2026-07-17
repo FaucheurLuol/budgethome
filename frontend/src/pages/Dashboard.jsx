@@ -111,7 +111,7 @@ function Dashboard() {
         {donnees.length === 0 ? (
           <p className="texte-vide">Aucune donnée</p>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={donnees}
