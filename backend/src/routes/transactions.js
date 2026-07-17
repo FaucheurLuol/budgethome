@@ -163,9 +163,12 @@ router.post('/retrait-epargne', verifierToken, async (req, res, next) => {
       return res.status(400).json({ erreur: 'Impossible de flécher un retrait depuis un compte courant.' });
     }
 
+    const foyerRes = await client.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    const foyerId = foyerRes.rows[0].foyer_id;
+
     const verifObjectif = await client.query(
-      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND utilisateur_id = $2',
-      [objectif_id, req.utilisateur.id]
+      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))',
+      [objectif_id, foyerId, req.utilisateur.id]
     );
     if (verifObjectif.rows.length === 0) {
       return res.status(404).json({ erreur: 'Objectif introuvable.' });
@@ -237,9 +240,12 @@ router.post('/virement-epargne', verifierToken, async (req, res, next) => {
     }
 
     if (objectif_id) {
+      const foyerRes = await client.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+      const foyerId = foyerRes.rows[0].foyer_id;
+
       const verifObjectif = await client.query(
-        'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND utilisateur_id = $2',
-        [objectif_id, req.utilisateur.id]
+        'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))',
+        [objectif_id, foyerId, req.utilisateur.id]
       );
       if (verifObjectif.rows.length === 0) {
         return res.status(404).json({ erreur: 'Objectif introuvable.' });
@@ -353,9 +359,12 @@ router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
       return res.status(400).json({ erreur: 'Le compte destination doit être un compte courant.' });
     }
 
+    const foyerRes = await client.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    const foyerId = foyerRes.rows[0].foyer_id;
+
     const verifObjectif = await client.query(
-      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND utilisateur_id = $2',
-      [objectif_id, req.utilisateur.id]
+      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))',
+      [objectif_id, foyerId, req.utilisateur.id]
     );
     if (verifObjectif.rows.length === 0) {
       return res.status(404).json({ erreur: 'Objectif introuvable.' });

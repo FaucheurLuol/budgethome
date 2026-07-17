@@ -4,14 +4,23 @@ const verifierToken = require('../middleware/auth');
 
 const router = express.Router();
 
-// ---------- OBJECTIFS D'ÉPARGNE ----------
+async function obtenirFoyerId(utilisateurId) {
+  const resultat = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [utilisateurId]);
+  return resultat.rows[0].foyer_id;
+}
 
-// GET /objectifs - liste les objectifs de l'utilisateur, avec progression calculée
+function clauseAcces(foyerId, alias = 'o') {
+  return `(${alias}.foyer_id = $FOYER_ID OR (${alias}.utilisateur_id = $UTILISATEUR_ID AND ${alias}.foyer_id IS NULL))`;
+}
+
+// GET /objectifs - liste les objectifs accessibles (miens + communs de mon foyer)
 router.get('/', verifierToken, async (req, res, next) => {
   try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
     const resultat = await pool.query(
       `SELECT
-         o.id, o.nom, o.montant_cible,
+         o.id, o.nom, o.montant_cible, o.foyer_id,
          COALESCE(SUM(
            CASE WHEN t.type_transaction = 'revenu' THEN a.montant_fleche
                 WHEN t.type_transaction = 'depense' THEN -a.montant_fleche
@@ -20,10 +29,10 @@ router.get('/', verifierToken, async (req, res, next) => {
        FROM objectifs_epargne o
        LEFT JOIN allocations_epargne a ON a.objectif_id = o.id
        LEFT JOIN transactions t ON t.id = a.transaction_id
-       WHERE o.utilisateur_id = $1
+       WHERE o.foyer_id = $1 OR (o.utilisateur_id = $2 AND o.foyer_id IS NULL)
        GROUP BY o.id
        ORDER BY o.nom`,
-      [req.utilisateur.id]
+      [foyerId, req.utilisateur.id]
     );
 
     res.json(resultat.rows);
@@ -35,15 +44,23 @@ router.get('/', verifierToken, async (req, res, next) => {
 // POST /objectifs
 router.post('/', verifierToken, async (req, res, next) => {
   try {
-    const { nom, montant_cible } = req.body;
+    const { nom, montant_cible, est_commun } = req.body;
 
     if (!nom || !montant_cible) {
       return res.status(400).json({ erreur: 'Nom et montant cible sont requis.' });
     }
 
+    let foyerId = null;
+    if (est_commun) {
+      foyerId = await obtenirFoyerId(req.utilisateur.id);
+      if (!foyerId) {
+        return res.status(400).json({ erreur: 'Vous devez appartenir à un foyer pour créer un objectif commun.' });
+      }
+    }
+
     const resultat = await pool.query(
-      'INSERT INTO objectifs_epargne (nom, montant_cible, utilisateur_id) VALUES ($1, $2, $3) RETURNING *',
-      [nom, montant_cible, req.utilisateur.id]
+      'INSERT INTO objectifs_epargne (nom, montant_cible, utilisateur_id, foyer_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nom, montant_cible, req.utilisateur.id, foyerId]
     );
 
     res.status(201).json(resultat.rows[0]);
@@ -56,10 +73,11 @@ router.post('/', verifierToken, async (req, res, next) => {
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
     const { nom, montant_cible } = req.body;
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
     const verifAcces = await pool.query(
-      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND utilisateur_id = $2',
-      [req.params.id, req.utilisateur.id]
+      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))',
+      [req.params.id, foyerId, req.utilisateur.id]
     );
     if (verifAcces.rows.length === 0) {
       return res.status(404).json({ erreur: 'Objectif introuvable.' });
@@ -79,9 +97,11 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 // DELETE /objectifs/:id
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
     const verifAcces = await pool.query(
-      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND utilisateur_id = $2',
-      [req.params.id, req.utilisateur.id]
+      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))',
+      [req.params.id, foyerId, req.utilisateur.id]
     );
     if (verifAcces.rows.length === 0) {
       return res.status(404).json({ erreur: 'Objectif introuvable.' });
@@ -94,21 +114,20 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
   }
 });
 
-// ---------- ALLOCATIONS D'ÉPARGNE ----------
-
 // POST /objectifs/:id/allocations - flécher une transaction vers cet objectif
 router.post('/:id/allocations', verifierToken, async (req, res, next) => {
   try {
     const { transaction_id, montant_fleche } = req.body;
     const objectifId = req.params.id;
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
     if (!transaction_id || !montant_fleche) {
       return res.status(400).json({ erreur: 'transaction_id et montant_fleche sont requis.' });
     }
 
     const verifObjectif = await pool.query(
-      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND utilisateur_id = $2',
-      [objectifId, req.utilisateur.id]
+      'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))',
+      [objectifId, foyerId, req.utilisateur.id]
     );
     if (verifObjectif.rows.length === 0) {
       return res.status(404).json({ erreur: 'Objectif introuvable.' });
@@ -141,15 +160,17 @@ router.post('/:id/allocations', verifierToken, async (req, res, next) => {
   }
 });
 
-// DELETE /objectifs/allocations/:id - retirer un flèchage (erreur de saisie)
+// DELETE /objectifs/allocations/:id
 router.delete('/allocations/:id', verifierToken, async (req, res, next) => {
   try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
     const verifAcces = await pool.query(
       `SELECT a.id
        FROM allocations_epargne a
        JOIN objectifs_epargne o ON o.id = a.objectif_id
-       WHERE a.id = $1 AND o.utilisateur_id = $2`,
-      [req.params.id, req.utilisateur.id]
+       WHERE a.id = $1 AND (o.foyer_id = $2 OR (o.utilisateur_id = $3 AND o.foyer_id IS NULL))`,
+      [req.params.id, foyerId, req.utilisateur.id]
     );
     if (verifAcces.rows.length === 0) {
       return res.status(404).json({ erreur: 'Allocation introuvable.' });

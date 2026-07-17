@@ -5,9 +5,9 @@ import '../style/tableur.css';
 
 function Objectifs() {
   const [objectifs, setObjectifs] = useState([]);
+  const [estCommun, setEstCommun] = useState(false);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
-
   const [nom, setNom] = useState('');
   const [montantCible, setMontantCible] = useState('');
 
@@ -37,9 +37,11 @@ function Objectifs() {
       await creerObjectifApi({
         nom,
         montant_cible: Math.round(parseFloat(montantCible) * 100),
+        est_commun: estCommun,
       });
       setNom('');
       setMontantCible('');
+      setEstCommun(false);
       chargerObjectifs();
     } catch (err) {
       setErreur(err.message);
@@ -108,6 +110,11 @@ function Objectifs() {
           onChange={(e) => setMontantCible(e.target.value)}
           required
         />
+
+        <label className="champ-checkbox">
+          <input type="checkbox" checked={estCommun} onChange={(e) => setEstCommun(e.target.checked)} />
+          Objectif commun du foyer
+        </label>
 
         <button className="btn-primary" type="submit">Créer</button>
       </form>
