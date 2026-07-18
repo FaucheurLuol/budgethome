@@ -1,17 +1,17 @@
 import { API_URL } from './config';
 import { getAuthHeader } from './token';
 
-export async function listerTransactionsApi(compteId) {
-  const reponse = await fetch(`${API_URL}/transactions?compte_id=${compteId}`, {
+export async function listerTransactionsApi(compteId, filtres = {}) {
+  const params = new URLSearchParams({ compte_id: compteId });
+  if (filtres.mois) params.append('mois', filtres.mois);
+  if (filtres.categorie_id) params.append('categorie_id', filtres.categorie_id);
+  if (filtres.recherche) params.append('recherche', filtres.recherche);
+
+  const reponse = await fetch(`${API_URL}/transactions?${params.toString()}`, {
     headers: { ...getAuthHeader() },
   });
-
   const donnees = await reponse.json();
-
-  if (!reponse.ok) {
-    throw new Error(donnees.erreur || 'Erreur lors de la récupération des transactions.');
-  }
-
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération des transactions.');
   return donnees;
 }
 

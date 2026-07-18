@@ -15,7 +15,7 @@ async function verifierAccesCompte(compteId, utilisateurId) {
 // GET /transactions?compte_id=X - liste les transactions d'un compte donné
 router.get('/', verifierToken, async (req, res, next) => {
   try {
-    const { compte_id } = req.query;
+    const { compte_id, mois, categorie_id, recherche } = req.query;
 
     if (!compte_id) {
       return res.status(400).json({ erreur: 'Le paramètre compte_id est requis.' });
@@ -24,6 +24,28 @@ router.get('/', verifierToken, async (req, res, next) => {
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
+    }
+
+    const conditions = ['t.compte_id = $1'];
+    const params = [compte_id];
+
+    if (mois) {
+      const [annee, moisNum] = mois.split('-');
+      const debutMois = `${annee}-${moisNum}-01`;
+      const finMoisDate = new Date(Number(annee), Number(moisNum), 1);
+      const finMois = `${finMoisDate.getFullYear()}-${String(finMoisDate.getMonth() + 1).padStart(2, '0')}-01`;
+      params.push(debutMois, finMois);
+      conditions.push(`t.date >= $${params.length - 1} AND t.date < $${params.length}`);
+    }
+
+    if (categorie_id) {
+      params.push(categorie_id);
+      conditions.push(`t.categorie_id = $${params.length}`);
+    }
+
+    if (recherche) {
+      params.push(`%${recherche}%`);
+      conditions.push(`t.description ILIKE $${params.length}`);
     }
 
     const resultat = await pool.query(
@@ -35,9 +57,9 @@ router.get('/', verifierToken, async (req, res, next) => {
       JOIN categories c ON c.id = t.categorie_id
       LEFT JOIN allocations_epargne a ON a.transaction_id = t.id
       LEFT JOIN objectifs_epargne o ON o.id = a.objectif_id
-      WHERE t.compte_id = $1
+      WHERE ${conditions.join(' AND ')}
       ORDER BY t.date DESC, t.id DESC`,
-      [compte_id]
+      params
     );
 
     res.json(resultat.rows);

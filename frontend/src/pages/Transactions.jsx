@@ -38,9 +38,13 @@ function Transactions() {
   const [objectifs, setObjectifs] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [modeles, setModeles] = useState([]);
+  const [toutesTransactions, setToutesTransactions] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
   const [compteSelectionne, setCompteSelectionne] = useState('');
+  const [filtreMois, setFiltreMois] = useState('');
+  const [filtreCategorie, setFiltreCategorie] = useState('');
+  const [recherche, setRecherche] = useState('');
   const [nouvelleLigne, setNouvelleLigne] = useState(ligneVide());
 
   useEffect(() => {
@@ -75,20 +79,34 @@ function Transactions() {
     }
   }
 
-  const chargerTransactions = useCallback(async () => {
+  const chargerToutesTransactions = useCallback(async () => {
     try {
       const donnees = await listerTransactionsApi(compteSelectionne);
-      setTransactions(donnees);
+      setToutesTransactions(donnees);
     } catch (err) {
       setErreur(err.message);
     }
   }, [compteSelectionne]);
 
+  const chargerTransactionsFiltrees = useCallback(async () => {
+    try {
+      const donnees = await listerTransactionsApi(compteSelectionne, {
+        mois: filtreMois || undefined,
+        categorie_id: filtreCategorie || undefined,
+        recherche: recherche || undefined,
+      });
+      setTransactions(donnees);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }, [compteSelectionne, filtreMois, filtreCategorie, recherche]);
+
   useEffect(() => {
     if (!compteSelectionne) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch déclenché par le changement de compte sélectionné
-    chargerTransactions();
-  }, [compteSelectionne, chargerTransactions]);
+    chargerToutesTransactions();
+    chargerTransactionsFiltrees();
+  }, [compteSelectionne, chargerToutesTransactions, chargerTransactionsFiltrees]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- réinitialisation du formulaire à chaque changement de compte pour éviter les effets de bord entre comptes
@@ -113,11 +131,11 @@ function Transactions() {
   const comptesEpargneDisponibles = comptes.filter((c) => c.type_compte !== 'Compte courant' && c.id !== Number(compteSelectionne));
   const comptesCourantsDisponibles = comptes.filter((c) => c.type_compte === 'Compte courant');
 
-  const transactionsAvecSolde = useMemo(() => {
-    const triAsc = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
+  const toutesAvecSolde = useMemo(() => {
+    const triAsc = [...toutesTransactions].sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
     const soldeDepart = compte ? compte.solde_initial : 0;
 
-    const avecSolde = triAsc.reduce((accumulateur, t) => {
+    return triAsc.reduce((accumulateur, t) => {
       const precedent = accumulateur.length > 0 ? accumulateur[accumulateur.length - 1] : null;
       const soldeReelPrecedent = precedent ? precedent.soldeReel : soldeDepart;
       const soldeProjetePrecedent = precedent ? precedent.soldeProjete : soldeDepart;
@@ -128,18 +146,23 @@ function Transactions() {
 
       return [...accumulateur, { ...t, soldeReel, soldeProjete }];
     }, []);
+  }, [toutesTransactions, compte]);
 
-    const simulees = avecSolde.filter((t) => t.est_simulee).reverse();
-    const reelles = avecSolde.filter((t) => !t.est_simulee).reverse();
+  const transactionsAvecSolde = useMemo(() => {
+    const idsFiltres = new Set(transactions.map((t) => t.id));
+    const avecSoldeFiltre = toutesAvecSolde.filter((t) => idsFiltres.has(t.id));
+
+    const simulees = avecSoldeFiltre.filter((t) => t.est_simulee).reverse();
+    const reelles = avecSoldeFiltre.filter((t) => !t.est_simulee).reverse();
     return [...simulees, ...reelles];
-  }, [transactions, compte]);
+  }, [toutesAvecSolde, transactions]);
 
-  const soldeReelActuel = transactionsAvecSolde.length > 0
-    ? transactionsAvecSolde[0].soldeReel
+  const soldeReelActuel = toutesAvecSolde.length > 0
+    ? toutesAvecSolde[toutesAvecSolde.length - 1].soldeReel
     : (compte ? compte.solde_initial : 0);
 
-  const soldeProjeteActuel = transactionsAvecSolde.length > 0
-    ? transactionsAvecSolde[0].soldeProjete
+  const soldeProjeteActuel = toutesAvecSolde.length > 0
+    ? toutesAvecSolde[toutesAvecSolde.length - 1].soldeProjete
     : (compte ? compte.solde_initial : 0);
 
   const categoriesFiltrees = aplatirPourSelect(
@@ -182,7 +205,8 @@ function Transactions() {
         });
 
         setNouvelleLigne(ligneVide());
-        chargerTransactions();
+        chargerToutesTransactions();
+        chargerTransactionsFiltrees();
         return;
       }
 
@@ -262,7 +286,8 @@ function Transactions() {
 
       await rechargerCategories();
       setNouvelleLigne(ligneVide());
-      chargerTransactions();
+      chargerToutesTransactions();
+      chargerTransactionsFiltrees();
     } catch (err) {
       setErreur(err.message);
     }
@@ -271,7 +296,8 @@ function Transactions() {
   async function gererSuppression(id) {
     try {
       await supprimerTransactionApi(id);
-      chargerTransactions();
+      chargerToutesTransactions();
+      chargerTransactionsFiltrees();
     } catch (err) {
       setErreur(err.message);
     }
@@ -280,7 +306,8 @@ function Transactions() {
   async function gererValidationSimulation(id) {
     try {
       await validerSimulationApi(id);
-      chargerTransactions();
+      chargerToutesTransactions();
+      chargerTransactionsFiltrees();
     } catch (err) {
       setErreur(err.message);
     }
@@ -376,6 +403,34 @@ function Transactions() {
               </button>
             ))}
           </div>
+        )}
+      </div>
+
+      <div className="barre-filtres">
+        <input
+          type="month"
+          value={filtreMois}
+          onChange={(e) => setFiltreMois(e.target.value)}
+        />
+        <select value={filtreCategorie} onChange={(e) => setFiltreCategorie(e.target.value)}>
+          <option value="">Toutes les catégories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.nom}</option>
+          ))}
+        </select>
+        <input
+          type="text"
+          placeholder="Rechercher dans la description..."
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+        />
+        {(filtreMois || filtreCategorie || recherche) && (
+          <button
+            className="bouton-discret"
+            onClick={() => { setFiltreMois(''); setFiltreCategorie(''); setRecherche(''); }}
+          >
+            Réinitialiser
+          </button>
         )}
       </div>
 

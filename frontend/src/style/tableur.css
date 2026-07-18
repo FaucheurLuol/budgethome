@@ -350,3 +350,27 @@
 .ligne-recurrente td.montant-revenu {
   color: #8fbf8f;
 }
+
+.barre-filtres {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.barre-filtres input,
+.barre-filtres select {
+  padding: 10px 14px;
+  background-color: var(--color-surface);
+  border: 1px solid rgba(237, 234, 224, 0.15);
+  border-radius: 8px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+}
+
+.barre-filtres input[type="text"] {
+  min-width: 220px;
+}
