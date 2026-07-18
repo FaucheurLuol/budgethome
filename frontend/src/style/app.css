@@ -417,3 +417,11 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+
+.section-profil {
+  margin-bottom: 40px;
+}
+
+.section-profil:last-child {
+  margin-bottom: 0;
+}

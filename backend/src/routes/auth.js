@@ -87,4 +87,34 @@ router.post('/connexion', limiteurAuth, async (req, res, next) => {
   }
 });
 
+// Modification du mot de passe
+router.put('/mot-de-passe', verifierToken, async (req, res, next) => {
+  try {
+    const { ancien_mot_de_passe, nouveau_mot_de_passe } = req.body;
+
+    if (!ancien_mot_de_passe || !nouveau_mot_de_passe) {
+      return res.status(400).json({ erreur: 'Ancien et nouveau mot de passe sont requis.' });
+    }
+
+    const motDePasseRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`])[A-Za-z\d!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`]{14,}$/;
+    if (!motDePasseRegex.test(nouveau_mot_de_passe)) {
+      return res.status(400).json({ erreur: 'Le nouveau mot de passe doit contenir au moins 14 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.' });
+    }
+
+    const resultat = await pool.query('SELECT mot_de_passe FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    const motDePasseValide = await bcrypt.compare(ancien_mot_de_passe, resultat.rows[0].mot_de_passe);
+
+    if (!motDePasseValide) {
+      return res.status(401).json({ erreur: 'Ancien mot de passe incorrect.' });
+    }
+
+    const nouveauHash = await bcrypt.hash(nouveau_mot_de_passe, 10);
+    await pool.query('UPDATE utilisateurs SET mot_de_passe = $1 WHERE id = $2', [nouveauHash, req.utilisateur.id]);
+
+    res.json({ message: 'Mot de passe modifié avec succès.' });
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
 module.exports = router;
