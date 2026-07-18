@@ -240,6 +240,7 @@ function Repartition() {
             <input
               type="number"
               step="0.01"
+              min="0.01"
               placeholder="Montant (€)"
               value={r.montant}
               onChange={(e) => majLigne(revenus, setRevenus, i, 'montant', e.target.value)}
@@ -261,6 +262,7 @@ function Repartition() {
             <input
               type="number"
               step="0.01"
+              min="0.01"
               placeholder="Montant (€)"
               value={d.montant}
               onChange={(e) => majLigne(depenses, setDepenses, i, 'montant', e.target.value)}

@@ -532,6 +532,7 @@ function Transactions() {
                     <input
                       type="number"
                       step="0.01"
+                      min="0.01"
                       placeholder="Montant fléché (€)"
                       value={nouvelleLigne.montant_fleche}
                       onChange={(e) => majNouvelleLigne('montant_fleche', e.target.value)}
@@ -544,6 +545,7 @@ function Transactions() {
                 <input
                   type="number"
                   step="0.01"
+                  min="0.01"
                   value={nouvelleLigne.montant}
                   onChange={(e) => majNouvelleLigne('montant', e.target.value)}
                 />

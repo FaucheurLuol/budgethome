@@ -63,6 +63,10 @@ router.post('/', verifierToken, async (req, res, next) => {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
     }
 
+    if (montant <= 0) {
+      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
+    }
+
     const resultat = await pool.query(
       `INSERT INTO transactions
        (date, montant, description, moyen_paiement, categorie_id, compte_id, type_transaction, est_recurrente, est_simulee)
@@ -84,6 +88,10 @@ router.put('/:id', verifierToken, async (req, res, next) => {
       date, montant, description, moyen_paiement,
       categorie_id, type_transaction, est_recurrente
     } = req.body;
+
+    if (montant !== undefined && montant <= 0) {
+      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
+    }
 
     const resultatExistant = await pool.query(
       'SELECT compte_id FROM transactions WHERE id = $1',
@@ -149,6 +157,10 @@ router.post('/retrait-epargne', verifierToken, async (req, res, next) => {
       return res.status(400).json({ erreur: 'Tous les champs, y compris objectif_id, sont requis pour un retrait d\'épargne.' });
     }
 
+    if (montant <= 0) {
+      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
+    }
+
     const acces = await client.query(
       `SELECT c.type_compte
        FROM comptes c
@@ -211,6 +223,10 @@ router.post('/virement-epargne', verifierToken, async (req, res, next) => {
 
     if (!date || !montant || !compte_courant_id || !compte_epargne_id) {
       return res.status(400).json({ erreur: 'Champs obligatoires manquants.' });
+    }
+
+    if (montant <= 0) {
+      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
     }
 
     const accesCourant = await client.query(
@@ -331,6 +347,10 @@ router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
 
     if (!date || !montant || !compte_epargne_id || !compte_courant_id || !objectif_id) {
       return res.status(400).json({ erreur: 'Tous les champs, y compris objectif_id, sont requis pour ce virement.' });
+    }
+
+    if (montant <= 0) {
+      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
     }
 
     const accesEpargne = await client.query(

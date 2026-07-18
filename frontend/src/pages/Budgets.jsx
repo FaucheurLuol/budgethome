@@ -230,6 +230,7 @@ function Budgets() {
           id="montant_defaut"
           type="number"
           step="0.01"
+          min="0.01"
           value={nouveauMontant}
           onChange={(e) => setNouveauMontant(e.target.value)}
         />

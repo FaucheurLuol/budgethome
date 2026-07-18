@@ -106,6 +106,7 @@ function Objectifs() {
           id="montant_cible"
           type="number"
           step="0.01"
+          min="0.01"
           value={montantCible}
           onChange={(e) => setMontantCible(e.target.value)}
           required

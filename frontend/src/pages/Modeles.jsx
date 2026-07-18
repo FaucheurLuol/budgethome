@@ -231,6 +231,7 @@ function Modeles() {
           id="montant"
           type="number"
           step="0.01"
+          min="0.01"
           value={montant}
           onChange={(e) => setMontant(e.target.value)}
         />
