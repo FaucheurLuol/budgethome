@@ -414,8 +414,8 @@ function Transactions() {
         />
         <select value={filtreCategorie} onChange={(e) => setFiltreCategorie(e.target.value)}>
           <option value="">Toutes les catégories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.nom}</option>
+          {aplatirPourSelect(categories).map((c) => (
+            <option key={c.id} value={c.id}>{c.nomAffiche}</option>
           ))}
         </select>
         <input
