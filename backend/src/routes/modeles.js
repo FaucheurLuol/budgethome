@@ -26,9 +26,27 @@ router.get('/', verifierToken, async (req, res, next) => {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
     }
 
+    const maintenant = new Date();
+    const debutMois = `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, '0')}-01`;
+    const finMoisDate = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 1);
+    const finMois = `${finMoisDate.getFullYear()}-${String(finMoisDate.getMonth() + 1).padStart(2, '0')}-01`;
+
     const resultat = await pool.query(
-      'SELECT * FROM modeles_transactions WHERE compte_id = $1 ORDER BY nom',
-      [compte_id]
+      `SELECT m.*,
+        EXISTS (
+          SELECT 1 FROM transactions t
+          WHERE t.compte_id = m.compte_id
+            AND t.montant BETWEEN ROUND(m.montant * 0.9) AND ROUND(m.montant * 1.1)
+            AND t.date >= $2 AND t.date < $3
+            AND (
+              (m.est_virement_epargne = FALSE AND t.categorie_id = m.categorie_id)
+              OR (m.est_virement_epargne = TRUE AND t.description = m.nom)
+            )
+        ) AS utilise_ce_mois
+       FROM modeles_transactions m
+       WHERE m.compte_id = $1
+       ORDER BY m.nom`,
+      [compte_id, debutMois, finMois]
     );
 
     res.json(resultat.rows);

@@ -374,3 +374,9 @@
 .barre-filtres input[type="text"] {
   min-width: 220px;
 }
+
+.btn-modele-utilise {
+  border-color: var(--color-accent-soft);
+  background-color: rgba(107, 143, 135, 0.15);
+  color: var(--color-accent-soft);
+}

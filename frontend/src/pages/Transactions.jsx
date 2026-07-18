@@ -398,8 +398,13 @@ function Transactions() {
         {modeles.length > 0 && (
           <div className="rangee-modeles">
             {modeles.map((m) => (
-              <button key={m.id} className="btn-modele" onClick={() => appliquerModele(m)}>
+              <button
+                key={m.id}
+                className={`btn-modele ${m.utilise_ce_mois ? 'btn-modele-utilise' : ''}`}
+                onClick={() => appliquerModele(m)}
+              >
                 {m.nom}
+                {m.utilise_ce_mois && ' ✓'}
               </button>
             ))}
           </div>
