@@ -35,3 +35,14 @@ export async function garantirCategorieEpargneApi() {
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la vérification de la catégorie Épargne.');
   return donnees;
 }
+
+export async function modifierCategorieApi(id, categorie) {
+  const reponse = await fetchAuthentifie(`/categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(categorie),
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la modification de la catégorie.');
+  return donnees;
+}

@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
-import { listerCategoriesApi, creerCategorieApi, supprimerCategorieApi } from '../api/categories';
+import { listerCategoriesApi, creerCategorieApi, supprimerCategorieApi, modifierCategorieApi } from '../api/categories';
 import { organiserEnArbre } from '../api/organiserCategories';
 import '../style/app.css';
 
 function Categories() {
   const [categoriesPlates, setCategoriesPlates] = useState([]);
   const [chargement, setChargement] = useState(true);
-  const [erreur, setErreur] = useState('');
-  const [estRecurrente, setEstRecurrente] = useState(false); 
+  const [estRecurrente, setEstRecurrente] = useState(false);
+  const [erreur, setErreur] = useState(''); 
   const [nom, setNom] = useState('');
-  const [typeCategorie, setTypeCategorie] = useState('depense');
   const [parentId, setParentId] = useState('');
+  const [typeCategorie, setTypeCategorie] = useState('depense');
+
 
   useEffect(() => {
     chargerCategories();
@@ -56,6 +57,20 @@ function Categories() {
     }
   }
 
+  async function gererBasculeRecurrent(categorie) {
+    try {
+      await modifierCategorieApi(categorie.id, {
+        nom: categorie.nom,
+        parent_id: categorie.parent_id,
+        type_categorie: categorie.type_categorie,
+        est_recurrente: !categorie.est_recurrente,
+      });
+      chargerCategories();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   const arbre = organiserEnArbre(categoriesPlates);
@@ -71,7 +86,12 @@ function Categories() {
             {noeud.nom}
             {noeud.est_recurrente && <span className="badge-recurrent">Récurrent</span>}
           </span>
-          <button className="bouton-discret" onClick={() => gererSuppression(noeud.id)}>Supprimer</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="bouton-discret" onClick={() => gererBasculeRecurrent(noeud)}>
+              {noeud.est_recurrente ? 'Retirer récurrent' : 'Marquer récurrent'}
+            </button>
+            <button className="bouton-discret" onClick={() => gererSuppression(noeud.id)}>Supprimer</button>
+          </div>
         </div>
         {noeud.enfants.length > 0 && (
           <ul>{noeud.enfants.map((enfant) => afficherNoeud(enfant))}</ul>
