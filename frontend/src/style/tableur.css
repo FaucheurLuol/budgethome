@@ -234,11 +234,6 @@
   margin-bottom: 0;
 }
 
-.ligne-simulee {
-  font-style: italic;
-  opacity: 0.6;
-}
-
 .rangee-modeles {
   display: flex;
   flex-wrap: wrap;
@@ -349,6 +344,27 @@
 
 .ligne-recurrente td.montant-revenu {
   color: #8fbf8f;
+}
+
+.ligne-simulee {
+  font-style: italic;
+  background-color: rgba(201, 162, 39, 0.1);
+  border-left: 3px solid var(--color-accent);
+  position: relative;
+}
+
+.ligne-simulee td:first-child::before {
+  content: "SIMULÉ";
+  display: inline-block;
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 8px;
+  font-style: normal;
 }
 
 .barre-filtres {
