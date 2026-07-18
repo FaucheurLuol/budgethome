@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthContext } from './authContext';
+import { definirGestionnaireDeconnexion } from '../api/fetchAuthentifie';
 
 export function AuthProvider({ children }) {
   const [utilisateur, setUtilisateur] = useState(() => {
@@ -21,6 +22,10 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUtilisateur(null);
   }
+
+  useEffect(() => {
+    definirGestionnaireDeconnexion(deconnexion);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ utilisateur, token, connexion, deconnexion }}>

@@ -1,19 +1,16 @@
-import { API_URL } from './config';
-import { getAuthHeader } from './token';
+import { fetchAuthentifie } from './fetchAuthentifie';
 
 export async function listerModelesApi(compteId) {
-  const reponse = await fetch(`${API_URL}/modeles?compte_id=${compteId}`, {
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie(`/modeles?compte_id=${compteId}`);
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération des modèles.');
   return donnees;
 }
 
 export async function creerModeleApi(modele) {
-  const reponse = await fetch(`${API_URL}/modeles`, {
+  const reponse = await fetchAuthentifie('/modeles', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(modele),
   });
   const donnees = await reponse.json();
@@ -22,10 +19,7 @@ export async function creerModeleApi(modele) {
 }
 
 export async function supprimerModeleApi(id) {
-  const reponse = await fetch(`${API_URL}/modeles/${id}`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie(`/modeles/${id}`, { method: 'DELETE' });
   if (!reponse.ok) {
     const donnees = await reponse.json();
     throw new Error(donnees.erreur || 'Erreur lors de la suppression du modèle.');
@@ -33,9 +27,9 @@ export async function supprimerModeleApi(id) {
 }
 
 export async function creerOuRemplacerModeleCompteCommunApi(compteId, montant) {
-  const reponse = await fetch(`${API_URL}/modeles/virement-compte-commun`, {
+  const reponse = await fetchAuthentifie('/modeles/virement-compte-commun', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ compte_id: compteId, montant }),
   });
   const donnees = await reponse.json();

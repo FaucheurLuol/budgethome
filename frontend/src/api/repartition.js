@@ -1,10 +1,9 @@
-import { API_URL } from './config';
-import { getAuthHeader } from './token';
+import { fetchAuthentifie } from './fetchAuthentifie';
 
 export async function calculerRepartitionApi(revenus, depenses, mois) {
-  const reponse = await fetch(`${API_URL}/repartition`, {
+  const reponse = await fetchAuthentifie('/repartition', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ revenus, depenses, mois }),
   });
   const donnees = await reponse.json();
@@ -13,29 +12,21 @@ export async function calculerRepartitionApi(revenus, depenses, mois) {
 }
 
 export async function listerHistoriqueRepartitionApi() {
-  const reponse = await fetch(`${API_URL}/repartition/historique`, {
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie('/repartition/historique');
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération de l\'historique.');
   return donnees;
 }
 
 export async function activerRepartitionApi(id) {
-  const reponse = await fetch(`${API_URL}/repartition/${id}/activer`, {
-    method: 'PATCH',
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie(`/repartition/${id}/activer`, { method: 'PATCH' });
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de l\'activation.');
   return donnees;
 }
 
 export async function supprimerRepartitionApi(id) {
-  const reponse = await fetch(`${API_URL}/repartition/${id}`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie(`/repartition/${id}`, { method: 'DELETE' });
   if (!reponse.ok) {
     const donnees = await reponse.json();
     throw new Error(donnees.erreur || 'Erreur lors de la suppression de la répartition.');

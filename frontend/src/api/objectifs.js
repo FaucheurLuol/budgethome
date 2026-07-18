@@ -1,19 +1,16 @@
-import { API_URL } from './config';
-import { getAuthHeader } from './token';
+import { fetchAuthentifie } from './fetchAuthentifie';
 
 export async function listerObjectifsApi() {
-  const reponse = await fetch(`${API_URL}/objectifs`, {
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie('/objectifs');
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération des objectifs.');
   return donnees;
 }
 
 export async function creerObjectifApi(objectif) {
-  const reponse = await fetch(`${API_URL}/objectifs`, {
+  const reponse = await fetchAuthentifie('/objectifs', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(objectif),
   });
   const donnees = await reponse.json();
@@ -22,10 +19,7 @@ export async function creerObjectifApi(objectif) {
 }
 
 export async function supprimerObjectifApi(id) {
-  const reponse = await fetch(`${API_URL}/objectifs/${id}`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie(`/objectifs/${id}`, { method: 'DELETE' });
   if (!reponse.ok) {
     const donnees = await reponse.json();
     throw new Error(donnees.erreur || 'Erreur lors de la suppression de l\'objectif.');
@@ -33,9 +27,9 @@ export async function supprimerObjectifApi(id) {
 }
 
 export async function creerAllocationApi(objectifId, transactionId, montantFleche) {
-  const reponse = await fetch(`${API_URL}/objectifs/${objectifId}/allocations`, {
+  const reponse = await fetchAuthentifie(`/objectifs/${objectifId}/allocations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ transaction_id: transactionId, montant_fleche: montantFleche }),
   });
   const donnees = await reponse.json();

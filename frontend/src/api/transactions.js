@@ -1,5 +1,4 @@
-import { API_URL } from './config';
-import { getAuthHeader } from './token';
+import { fetchAuthentifie } from './fetchAuthentifie';
 
 export async function listerTransactionsApi(compteId, filtres = {}) {
   const params = new URLSearchParams({ compte_id: compteId });
@@ -7,36 +6,25 @@ export async function listerTransactionsApi(compteId, filtres = {}) {
   if (filtres.categorie_id) params.append('categorie_id', filtres.categorie_id);
   if (filtres.recherche) params.append('recherche', filtres.recherche);
 
-  const reponse = await fetch(`${API_URL}/transactions?${params.toString()}`, {
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie(`/transactions?${params.toString()}`);
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération des transactions.');
   return donnees;
 }
 
 export async function creerTransactionApi(transaction) {
-  const reponse = await fetch(`${API_URL}/transactions`, {
+  const reponse = await fetchAuthentifie('/transactions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(transaction),
   });
-
   const donnees = await reponse.json();
-
-  if (!reponse.ok) {
-    throw new Error(donnees.erreur || 'Erreur lors de la création de la transaction.');
-  }
-
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la création de la transaction.');
   return donnees;
 }
 
 export async function supprimerTransactionApi(id) {
-  const reponse = await fetch(`${API_URL}/transactions/${id}`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeader() },
-  });
-
+  const reponse = await fetchAuthentifie(`/transactions/${id}`, { method: 'DELETE' });
   if (!reponse.ok) {
     const donnees = await reponse.json();
     throw new Error(donnees.erreur || 'Erreur lors de la suppression de la transaction.');
@@ -44,9 +32,9 @@ export async function supprimerTransactionApi(id) {
 }
 
 export async function creerRetraitEpargneApi(retrait) {
-  const reponse = await fetch(`${API_URL}/transactions/retrait-epargne`, {
+  const reponse = await fetchAuthentifie('/transactions/retrait-epargne', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(retrait),
   });
   const donnees = await reponse.json();
@@ -55,9 +43,9 @@ export async function creerRetraitEpargneApi(retrait) {
 }
 
 export async function creerVirementEpargneApi(virement) {
-  const reponse = await fetch(`${API_URL}/transactions/virement-epargne`, {
+  const reponse = await fetchAuthentifie('/transactions/virement-epargne', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(virement),
   });
   const donnees = await reponse.json();
@@ -66,9 +54,9 @@ export async function creerVirementEpargneApi(virement) {
 }
 
 export async function creerVirementVersCourantApi(virement) {
-  const reponse = await fetch(`${API_URL}/transactions/virement-vers-courant`, {
+  const reponse = await fetchAuthentifie('/transactions/virement-vers-courant', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(virement),
   });
   const donnees = await reponse.json();
@@ -77,10 +65,7 @@ export async function creerVirementVersCourantApi(virement) {
 }
 
 export async function validerSimulationApi(id) {
-  const reponse = await fetch(`${API_URL}/transactions/${id}/valider-simulation`, {
-    method: 'PATCH',
-    headers: { ...getAuthHeader() },
-  });
+  const reponse = await fetchAuthentifie(`/transactions/${id}/valider-simulation`, { method: 'PATCH' });
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la validation de la transaction.');
   return donnees;

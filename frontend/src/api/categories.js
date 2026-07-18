@@ -1,42 +1,25 @@
-import { API_URL } from './config';
-import { getAuthHeader } from './token';
+import { fetchAuthentifie } from './fetchAuthentifie';
 
 export async function listerCategoriesApi() {
-  const reponse = await fetch(`${API_URL}/categories`, {
-    headers: { ...getAuthHeader() },
-  });
-
+  const reponse = await fetchAuthentifie('/categories');
   const donnees = await reponse.json();
-
-  if (!reponse.ok) {
-    throw new Error(donnees.erreur || 'Erreur lors de la récupération des catégories.');
-  }
-
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération des catégories.');
   return donnees;
 }
 
 export async function creerCategorieApi(categorie) {
-  const reponse = await fetch(`${API_URL}/categories`, {
+  const reponse = await fetchAuthentifie('/categories', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(categorie),
   });
-
   const donnees = await reponse.json();
-
-  if (!reponse.ok) {
-    throw new Error(donnees.erreur || 'Erreur lors de la création de la catégorie.');
-  }
-
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la création de la catégorie.');
   return donnees;
 }
 
 export async function supprimerCategorieApi(id) {
-  const reponse = await fetch(`${API_URL}/categories/${id}`, {
-    method: 'DELETE',
-    headers: { ...getAuthHeader() },
-  });
-
+  const reponse = await fetchAuthentifie(`/categories/${id}`, { method: 'DELETE' });
   if (!reponse.ok) {
     const donnees = await reponse.json();
     throw new Error(donnees.erreur || 'Erreur lors de la suppression de la catégorie.');
@@ -44,9 +27,9 @@ export async function supprimerCategorieApi(id) {
 }
 
 export async function garantirCategorieEpargneApi() {
-  const reponse = await fetch(`${API_URL}/categories/epargne-defaut`, {
+  const reponse = await fetchAuthentifie('/categories/epargne-defaut', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    headers: { 'Content-Type': 'application/json' },
   });
   const donnees = await reponse.json();
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la vérification de la catégorie Épargne.');
