@@ -1,7 +1,19 @@
 import { Link } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../context/useAuth';
 import '../style/landing.css';
 
 function Accueil() {
+  const { utilisateur, chargementInitial } = useAuth();
+
+  if (chargementInitial) {
+    return null; // ou un petit indicateur de chargement, le temps de vérifier la session
+  }
+
+  if (utilisateur) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="landing">
       <section className="landing-hero">
