@@ -10,12 +10,12 @@
 }
 
 body[data-theme="clair"] {
-  --color-bg: #FFFFFF;
-  --color-surface: #F4F4F4;
-  --color-text: #1C2321;
-  --color-text-muted: #5C6660;
-  --color-accent: #A8791C;
-  --color-accent-soft: #4A6B62;
+  --color-bg: #fff;
+  --color-surface: #f4f4f4;
+  --color-text: #1c2321;
+  --color-text-muted: #5c6660;
+  --color-accent: #c96414;
+  --color-accent-soft: #2abbb8;
 }
 
 * {

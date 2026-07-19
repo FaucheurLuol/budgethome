@@ -388,11 +388,11 @@
 
 .montant-negatif,
 .montant-depense {
-  color: #d98b7a !important;
+  color: #d11212 !important;
 }
 
 .montant-revenu {
-  color: #8fbf8f;
+  color: #46c546;
 }
 
 .btn-favori {

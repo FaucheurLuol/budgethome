@@ -184,7 +184,7 @@
 
 .objectif-barre-fond {
   height: 10px;
-  background-color: rgba(237, 234, 224, 0.1);
+  background-color: rgba(237, 234, 224, 0.9);
   border-radius: 5px;
   overflow: hidden;
 }
@@ -339,11 +339,11 @@
 }
 
 .ligne-recurrente td.montant-depense {
-  color: #d98b7a;
+  color: #d11212 !important;
 }
 
 .ligne-recurrente td.montant-revenu {
-  color: #8fbf8f;
+  color: #46c546;
 }
 
 .ligne-simulee {
