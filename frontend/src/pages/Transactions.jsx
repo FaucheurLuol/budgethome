@@ -293,6 +293,13 @@ function Transactions() {
     }
   }
 
+    function gererToucheEntree(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        gererAjout();
+      }
+    }
+
   async function gererSuppression(id) {
     try {
       await supprimerTransactionApi(id);
@@ -596,6 +603,7 @@ function Transactions() {
                       placeholder="Montant fléché (€)"
                       value={nouvelleLigne.montant_fleche}
                       onChange={(e) => majNouvelleLigne('montant_fleche', e.target.value)}
+                      onKeyDown={gererToucheEntree}
                     />
                   )}
                 </td>
@@ -608,6 +616,7 @@ function Transactions() {
                   min="0.01"
                   value={nouvelleLigne.montant}
                   onChange={(e) => majNouvelleLigne('montant', e.target.value)}
+                  onKeyDown={gererToucheEntree}
                 />
               </td>
               <td>
