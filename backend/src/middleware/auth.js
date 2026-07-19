@@ -1,13 +1,11 @@
 const jwt = require('jsonwebtoken');
 
 function verifierToken(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies.token;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return res.status(401).json({ erreur: 'Token manquant.' });
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decode = jwt.verify(token, process.env.JWT_SECRET);

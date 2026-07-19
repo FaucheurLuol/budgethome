@@ -1,5 +1,4 @@
 import { API_URL } from './config';
-import { getAuthHeader } from './token';
 
 let gestionnaireDeconnexion = null;
 
@@ -10,9 +9,9 @@ export function definirGestionnaireDeconnexion(fonction) {
 export async function fetchAuthentifie(chemin, options = {}) {
   const reponse = await fetch(`${API_URL}${chemin}`, {
     ...options,
+    credentials: 'include',
     headers: {
       ...options.headers,
-      ...getAuthHeader(),
     },
   });
 

@@ -17,7 +17,7 @@ function Connexion() {
 
     try {
       const donnees = await connexionApi(email, motDePasse);
-      connexion(donnees.token, donnees.utilisateur);
+      connexion(donnees.utilisateur);
       navigate('/dashboard');
     } catch (err) {
       setErreur(err.message);

@@ -1,48 +1,56 @@
 import { useState, useEffect } from 'react';
 import { AuthContext } from './authContext';
 import { definirGestionnaireDeconnexion } from '../api/fetchAuthentifie';
+import { obtenirMoiApi, deconnexionApi } from '../api/auth';
 
 function appliquerTheme(theme) {
   document.body.setAttribute('data-theme', theme === 'clair' ? 'clair' : 'sombre');
 }
 
 export function AuthProvider({ children }) {
-  const [utilisateur, setUtilisateur] = useState(() => {
-    const utilisateurStocke = localStorage.getItem('utilisateur');
-    const u = utilisateurStocke ? JSON.parse(utilisateurStocke) : null;
-    if (u) appliquerTheme(u.theme);
-    return u;
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  const [utilisateur, setUtilisateur] = useState(null);
+  const [chargementInitial, setChargementInitial] = useState(true);
 
-  function connexion(nouveauToken, nouvelUtilisateur) {
-    localStorage.setItem('token', nouveauToken);
-    localStorage.setItem('utilisateur', JSON.stringify(nouvelUtilisateur));
-    setToken(nouveauToken);
+  useEffect(() => {
+    async function verifierSession() {
+      try {
+        const donnees = await obtenirMoiApi();
+        setUtilisateur(donnees);
+        appliquerTheme(donnees.theme);
+      } catch {
+        setUtilisateur(null);
+      } finally {
+        setChargementInitial(false);
+      }
+    }
+    verifierSession();
+  }, []);
+
+  function connexion(nouvelUtilisateur) {
     setUtilisateur(nouvelUtilisateur);
     appliquerTheme(nouvelUtilisateur.theme);
   }
 
-  function deconnexion() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('utilisateur');
-    setToken(null);
+  async function deconnexion() {
+    try {
+      await deconnexionApi();
+    } catch {
+      // on déconnecte localement même si l'appel réseau échoue
+    }
     setUtilisateur(null);
   }
 
   function changerThemeLocal(theme) {
-    const utilisateurMisAJour = { ...utilisateur, theme };
-    localStorage.setItem('utilisateur', JSON.stringify(utilisateurMisAJour));
-    setUtilisateur(utilisateurMisAJour);
+    setUtilisateur((precedent) => ({ ...precedent, theme }));
     appliquerTheme(theme);
   }
 
   useEffect(() => {
-    definirGestionnaireDeconnexion(deconnexion);
+    definirGestionnaireDeconnexion(() => setUtilisateur(null));
   }, []);
 
   return (
-    <AuthContext.Provider value={{ utilisateur, token, connexion, deconnexion, changerThemeLocal }}>
+    <AuthContext.Provider value={{ utilisateur, chargementInitial, connexion, deconnexion, changerThemeLocal }}>
       {children}
     </AuthContext.Provider>
   );

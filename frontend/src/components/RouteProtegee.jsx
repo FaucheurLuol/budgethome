@@ -2,9 +2,13 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
 function RouteProtegee({ children }) {
-  const { token } = useAuth();
+  const { utilisateur, chargementInitial } = useAuth();
 
-  if (!token) {
+  if (chargementInitial) {
+    return <p>Chargement...</p>;
+  }
+
+  if (!utilisateur) {
     return <Navigate to="/connexion" replace />;
   }
 

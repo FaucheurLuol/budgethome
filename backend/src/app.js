@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const verifierToken = require('./middleware/auth');
 const gestionErreurs = require('./middleware/erreurs');
 const authRoutes = require('./routes/auth');
@@ -27,6 +28,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(cookieParser());
 app.use('/auth', authRoutes);
 app.use('/comptes', comptesRoutes);
 app.use('/categories', categoriesRoutes);

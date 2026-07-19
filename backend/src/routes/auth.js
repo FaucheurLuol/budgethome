@@ -7,6 +7,15 @@ const verifierToken = require('../middleware/auth');
 
 const router = express.Router();
 
+function poserCookieToken(res, token) {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+}
+
 // Inscription
 router.post('/inscription', limiteurAuth, async (req, res, next) => {
   try {
@@ -46,7 +55,8 @@ router.post('/inscription', limiteurAuth, async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({ token, utilisateur });
+    poserCookieToken(res, token);
+    res.status(201).json({ utilisateur });
   } catch (erreur) {
     next(erreur);
   }
@@ -82,6 +92,7 @@ router.post('/connexion', limiteurAuth, async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
+    poserCookieToken(res, token);
     res.json({ token, utilisateur: { id: utilisateur.id, nom: utilisateur.nom, email: utilisateur.email, theme: utilisateur.theme } });
   } catch (erreur) {
     next(erreur);
@@ -131,6 +142,27 @@ router.put('/theme', verifierToken, async (req, res, next) => {
   } catch (erreur) {
     next(erreur);
   }
+});
+
+router.get('/moi', verifierToken, async (req, res, next) => {
+  try {
+    const resultat = await pool.query('SELECT id, nom, email, theme FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    if (resultat.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Utilisateur introuvable.' });
+    }
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+router.post('/deconnexion', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
+  res.json({ message: 'Déconnecté.' });
 });
 
 module.exports = router;

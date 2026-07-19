@@ -54,7 +54,7 @@ function Inscription() {
 
     try {
       const donnees = await inscriptionApi(nom, email, motDePasse);
-      connexion(donnees.token, donnees.utilisateur);
+      connexion(donnees.utilisateur);
       navigate('/dashboard');
     } catch (err) {
       afficherErreur(err.message);
