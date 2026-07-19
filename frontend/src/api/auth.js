@@ -33,3 +33,14 @@ export async function changerMotDePasseApi(ancienMotDePasse, nouveauMotDePasse) 
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du changement de mot de passe.');
   return donnees;
 }
+
+export async function changerThemeApi(theme) {
+  const reponse = await fetchAuthentifie('/auth/theme', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ theme }),
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du changement de thème.');
+  return donnees;
+}

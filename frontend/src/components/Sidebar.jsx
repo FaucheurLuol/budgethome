@@ -1,9 +1,20 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { changerThemeApi } from '../api/auth';
 import '../style/sidebar.css';
 
 function Sidebar({ ouverte, fermer }) {
-  const { utilisateur, deconnexion } = useAuth();
+  const { utilisateur, deconnexion, changerThemeLocal } = useAuth();
+
+  async function gererChangementTheme() {
+    const nouveauTheme = utilisateur.theme === 'clair' ? 'sombre' : 'clair';
+    changerThemeLocal(nouveauTheme);
+    try {
+      await changerThemeApi(nouveauTheme);
+    } catch {
+      // en cas d'échec réseau, le thème reste appliqué localement ; pas bloquant
+    }
+  }
 
   return (
     <aside className={`sidebar ${ouverte ? 'sidebar-ouverte' : ''}`}>
@@ -38,6 +49,10 @@ function Sidebar({ ouverte, fermer }) {
           Archives
         </NavLink>
       </nav>
+
+      <button className="bouton-theme" onClick={gererChangementTheme}>
+        {utilisateur?.theme === 'clair' ? '🌙 Mode sombre' : '☀️ Mode clair'}
+      </button>
 
       <div className="sidebar-utilisateur">
         <NavLink to="/profil" onClick={fermer} className="sidebar-lien">

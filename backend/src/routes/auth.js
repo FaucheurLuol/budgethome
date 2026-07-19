@@ -34,7 +34,7 @@ router.post('/inscription', limiteurAuth, async (req, res, next) => {
     const hash = await bcrypt.hash(mot_de_passe, 10);
 
     const resultat = await pool.query(
-      'INSERT INTO utilisateurs (nom, email, mot_de_passe) VALUES ($1, $2, $3) RETURNING id, nom, email',
+      'INSERT INTO utilisateurs (nom, email, mot_de_passe) VALUES ($1, $2, $3) RETURNING id, nom, email, theme',
       [nom, email, hash]
     );
 
@@ -82,7 +82,7 @@ router.post('/connexion', limiteurAuth, async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    res.json({ token, utilisateur: { id: utilisateur.id, nom: utilisateur.nom, email: utilisateur.email } });
+    res.json({ token, utilisateur: { id: utilisateur.id, nom: utilisateur.nom, email: utilisateur.email, theme: utilisateur.theme } });
   } catch (erreur) {
     next(erreur);
   }
@@ -113,6 +113,21 @@ router.put('/mot-de-passe', verifierToken, async (req, res, next) => {
     await pool.query('UPDATE utilisateurs SET mot_de_passe = $1 WHERE id = $2', [nouveauHash, req.utilisateur.id]);
 
     res.json({ message: 'Mot de passe modifié avec succès.' });
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+router.put('/theme', verifierToken, async (req, res, next) => {
+  try {
+    const { theme } = req.body;
+
+    if (!['sombre', 'clair'].includes(theme)) {
+      return res.status(400).json({ erreur: 'Thème invalide.' });
+    }
+
+    await pool.query('UPDATE utilisateurs SET theme = $1 WHERE id = $2', [theme, req.utilisateur.id]);
+    res.json({ theme });
   } catch (erreur) {
     next(erreur);
   }

@@ -9,6 +9,15 @@
   --font-body: 'Work Sans', sans-serif;
 }
 
+body[data-theme="clair"] {
+  --color-bg: #FFFFFF;
+  --color-surface: #F4F4F4;
+  --color-text: #1C2321;
+  --color-text-muted: #5C6660;
+  --color-accent: #A8791C;
+  --color-accent-soft: #4A6B62;
+}
+
 * {
   box-sizing: border-box;
 }

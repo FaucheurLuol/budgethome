@@ -84,6 +84,24 @@
   display: none;
 }
 
+.bouton-theme {
+  background: none;
+  border: 1px solid rgba(237, 234, 224, 0.15);
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  cursor: pointer;
+  margin-top: 16px;
+  text-align: left;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.bouton-theme:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
