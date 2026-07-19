@@ -150,8 +150,8 @@
   color: var(--color-accent-soft);
 }
 
-.solde-projete-dashboard {
-  font-size: 0.72rem;
-  color: var(--color-accent-soft);
+.solde-projete-dashboard span {
+  font-size: 1rem;
+  color: var(--color-text);
   margin-top: 2px;
 }
