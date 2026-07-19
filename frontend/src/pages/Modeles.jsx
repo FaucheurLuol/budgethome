@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { listerComptesApi } from '../api/comptes';
 import { listerCategoriesApi } from '../api/categories';
 import { listerModelesApi, creerModeleApi, supprimerModeleApi, modifierModeleApi } from '../api/modeles';
@@ -12,6 +12,7 @@ function Modeles() {
   const [chargement, setChargement] = useState(true);
   const [estVirementEpargne, setEstVirementEpargne] = useState(false);
   const [modeleEnEdition, setModeleEnEdition] = useState(null);
+  const formulaireRef = useRef(null);
   const [typeTransaction, setTypeTransaction] = useState('depense');
   const [objectifs, setObjectifs] = useState([]);
   const [comptes, setComptes] = useState([]);
@@ -84,6 +85,7 @@ function Modeles() {
       setCategorieId(String(modele.categorie_id));
       setTypeTransaction(modele.type_transaction);
     }
+    formulaireRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function gererAnnulerEdition() {
@@ -191,7 +193,7 @@ function Modeles() {
       </ul>
 
       <h2>{modeleEnEdition ? 'Modifier le modèle' : 'Créer un modèle'}</h2>
-      <form className="formulaire-carte" onSubmit={gererSoumission}>
+      <form ref={formulaireRef} className="formulaire-carte" onSubmit={gererSoumission}>
         <label htmlFor="nom">Nom :</label>
         <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
 
