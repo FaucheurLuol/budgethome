@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { listerComptesApi } from '../api/comptes';
 import { listerCategoriesApi } from '../api/categories';
-import { listerModelesApi, creerModeleApi, supprimerModeleApi } from '../api/modeles';
+import { listerModelesApi, creerModeleApi, supprimerModeleApi, modifierModeleApi } from '../api/modeles';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import { listerObjectifsApi } from '../api/objectifs';
 import '../style/app.css';
@@ -9,21 +9,20 @@ import '../style/app.css';
 const MOYENS_PAIEMENT = ['CB', 'Virement', 'Especes', 'Prelevement', 'Cheque'];
 
 function Modeles() {
+  const [chargement, setChargement] = useState(true);
+  const [estVirementEpargne, setEstVirementEpargne] = useState(false);
+  const [modeleEnEdition, setModeleEnEdition] = useState(null);
+  const [typeTransaction, setTypeTransaction] = useState('depense');
+  const [objectifs, setObjectifs] = useState([]);
   const [comptes, setComptes] = useState([]);
-  const [compteSelectionne, setCompteSelectionne] = useState('');
   const [categories, setCategories] = useState([]);
   const [modeles, setModeles] = useState([]);
-  const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
-
+  const [compteSelectionne, setCompteSelectionne] = useState('');
   const [nom, setNom] = useState('');
   const [categorieId, setCategorieId] = useState('');
   const [montant, setMontant] = useState('');
-  const [typeTransaction, setTypeTransaction] = useState('depense');
   const [moyenPaiement, setMoyenPaiement] = useState('');
-
-  const [objectifs, setObjectifs] = useState([]);
-  const [estVirementEpargne, setEstVirementEpargne] = useState(false);
   const [compteEpargneId, setCompteEpargneId] = useState('');
   const [objectifId, setObjectifId] = useState('');
 
@@ -72,6 +71,32 @@ function Modeles() {
     }
   }
 
+  function gererDebutEdition(modele) {
+    setModeleEnEdition(modele.id);
+    setNom(modele.nom);
+    setMontant(modele.montant ? (modele.montant / 100).toFixed(2) : '');
+    setMoyenPaiement(modele.moyen_paiement || '');
+    setEstVirementEpargne(modele.est_virement_epargne);
+    if (modele.est_virement_epargne) {
+      setCompteEpargneId(String(modele.compte_epargne_id));
+      setObjectifId(modele.objectif_id ? String(modele.objectif_id) : '');
+    } else {
+      setCategorieId(String(modele.categorie_id));
+      setTypeTransaction(modele.type_transaction);
+    }
+  }
+
+  function gererAnnulerEdition() {
+    setModeleEnEdition(null);
+    setNom('');
+    setCategorieId('');
+    setMontant('');
+    setMoyenPaiement('');
+    setEstVirementEpargne(false);
+    setCompteEpargneId('');
+    setObjectifId('');
+  }
+
   const categoriesFiltrees = aplatirPourSelect(categories.filter((c) => c.type_categorie === typeTransaction));
   const comptesEpargneDisponibles = comptes.filter((c) => c.type_compte !== 'Compte courant');
 
@@ -92,7 +117,7 @@ function Modeles() {
         return;
       }
 
-      await creerModeleApi({
+      const donneesModele = {
         compte_id: Number(compteSelectionne),
         nom,
         categorie_id: estVirementEpargne ? null : Number(categorieId),
@@ -102,15 +127,15 @@ function Modeles() {
         est_virement_epargne: estVirementEpargne,
         compte_epargne_id: estVirementEpargne ? Number(compteEpargneId) : null,
         objectif_id: objectifId ? Number(objectifId) : null,
-      });
+      };
 
-      setNom('');
-      setCategorieId('');
-      setMontant('');
-      setMoyenPaiement('');
-      setEstVirementEpargne(false);
-      setCompteEpargneId('');
-      setObjectifId('');
+      if (modeleEnEdition) {
+        await modifierModeleApi(modeleEnEdition, donneesModele);
+      } else {
+        await creerModeleApi(donneesModele);
+      }
+
+      gererAnnulerEdition();
       rechargerModeles();
     } catch (err) {
       setErreur(err.message);
@@ -150,7 +175,10 @@ function Modeles() {
           <li key={m.id} className="carte-item">
             <div className="carte-item-entete">
               <strong>{m.nom}</strong>
-              <button className="bouton-discret" onClick={() => gererSuppression(m.id)}>Supprimer</button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="bouton-discret" onClick={() => gererDebutEdition(m)}>Modifier</button>
+                <button className="bouton-discret" onClick={() => gererSuppression(m.id)}>Supprimer</button>
+              </div>
             </div>
             {m.est_virement_epargne ? (
               <span className="carte-detail">Vers l'épargne → {comptes.find((c) => c.id === m.compte_epargne_id)?.nom || '—'}</span>
@@ -162,7 +190,7 @@ function Modeles() {
         ))}
       </ul>
 
-      <h2>Créer un modèle</h2>
+      <h2>{modeleEnEdition ? 'Modifier le modèle' : 'Créer un modèle'}</h2>
       <form className="formulaire-carte" onSubmit={gererSoumission}>
         <label htmlFor="nom">Nom :</label>
         <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
@@ -236,7 +264,14 @@ function Modeles() {
           onChange={(e) => setMontant(e.target.value)}
         />
 
-        <button className="btn-primary" type="submit">Créer</button>
+        <button className="btn-primary" type="submit">
+          {modeleEnEdition ? 'Enregistrer' : 'Créer'}
+        </button>
+        {modeleEnEdition && (
+          <button type="button" className="bouton-discret" onClick={gererAnnulerEdition}>
+            Annuler
+          </button>
+        )}
       </form>
     </div>
   );
