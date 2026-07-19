@@ -149,6 +149,11 @@ function Dashboard() {
           <div key={c.id} className="carte-solde">
             <span>{c.nom}</span>
             <strong className={c.solde_actuel < 0 ? 'montant-negatif' : ''}>{(c.solde_actuel / 100).toFixed(2)} €</strong>
+            {c.solde_projete !== c.solde_actuel && (
+              <span className="solde-projete-dashboard">
+                Projeté : <span className={c.solde_projete < 0 ? 'montant-negatif' : ''}>{(c.solde_projete / 100).toFixed(2)} €</span>
+              </span>
+            )}
           </div>
         ))}
       </div>

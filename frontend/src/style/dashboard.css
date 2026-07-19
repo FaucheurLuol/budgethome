@@ -149,3 +149,9 @@
 .carte-solde-restant strong {
   color: var(--color-accent-soft);
 }
+
+.solde-projete-dashboard {
+  font-size: 0.72rem;
+  color: var(--color-accent-soft);
+  margin-top: 2px;
+}

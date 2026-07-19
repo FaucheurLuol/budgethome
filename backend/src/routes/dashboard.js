@@ -11,18 +11,27 @@ router.get('/soldes', verifierToken, async (req, res, next) => {
       `SELECT
          c.id, c.nom, c.type_compte,
          c.solde_initial + COALESCE(SUM(
+           CASE WHEN t.est_simulee = FALSE THEN
+             CASE WHEN t.type_transaction = 'revenu' THEN t.montant ELSE -t.montant END
+           ELSE 0 END
+         ), 0) AS solde_actuel,
+         c.solde_initial + COALESCE(SUM(
            CASE WHEN t.type_transaction = 'revenu' THEN t.montant ELSE -t.montant END
-         ), 0) AS solde_actuel
+         ), 0) AS solde_projete
        FROM comptes c
        JOIN compte_utilisateurs cu ON cu.compte_id = c.id
-       LEFT JOIN transactions t ON t.compte_id = c.id AND t.est_simulee = FALSE
+       LEFT JOIN transactions t ON t.compte_id = c.id
        WHERE cu.utilisateur_id = $1 AND cu.est_archive = FALSE
        GROUP BY c.id
-       ORDER BY c.type_compte, c.nom`,
+       ORDER BY c.est_favori DESC, c.nom`,
       [req.utilisateur.id]
     );
 
-    res.json(resultat.rows.map((r) => ({ ...r, solde_actuel: Number(r.solde_actuel) })));
+    res.json(resultat.rows.map((r) => ({
+      ...r,
+      solde_actuel: Number(r.solde_actuel),
+      solde_projete: Number(r.solde_projete),
+    })));
   } catch (erreur) {
     next(erreur);
   }
