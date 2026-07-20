@@ -501,7 +501,7 @@ function Transactions() {
               <th style={{ width: '10%' }}>Montant</th>
               <th style={{ width: '10%' }}>Solde</th>
               <th style={{ width: '7%' }}></th>
-              {!estCompteEpargne && <th style={{ width: '8%' }}>Simuler</th>}
+              {!estCompteEpargne && <th style={{ width: '6%' }}>Simuler</th>}
             </tr>
           </thead>
           <tbody>
@@ -736,8 +736,8 @@ function Transactions() {
                     </td>
                     <td>—</td>
                     <td className="actions-cell">
-                      <button className="btn-valider-simulation" onClick={() => gererEnregistrerEditionTransaction(t)}>✓</button>
-                      <button className="btn-supprimer-ligne" onClick={gererAnnulerEditionTransaction}>✕</button>
+                      <button className="btn-valider-simulation" onClick={() => gererEnregistrerEditionTransaction(t)} title='Valider le changement'>✓</button>
+                      <button className="btn-supprimer-ligne" onClick={gererAnnulerEditionTransaction} title='Annuler le changement'>✕</button>
                     </td>
                     {!estCompteEpargne && <td></td>}
                   </tr>
@@ -761,12 +761,14 @@ function Transactions() {
                     {estModifiable && (
                       <button className="btn-valider-simulation" onClick={() => gererDebutEditionTransaction(t)} title="Modifier">✎</button>
                     )}
-                    {t.est_simulee && (
-                      <button className="btn-valider-simulation" onClick={() => gererValidationSimulation(t.id)} title="Passer en réelle">✓</button>
-                    )}
                     <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)}>✕</button>
                   </td>
-                  {!estCompteEpargne && <td>{t.est_simulee ? '✓' : ''}</td>}
+                  {!estCompteEpargne && 
+                    <td>
+                      {t.est_simulee && (
+                        <button className="btn-valider-simulation" onClick={() => gererValidationSimulation(t.id)} title="Passer en réelle">✓</button>
+                      )}
+                    </td>}
                 </tr>
               );
             })}
