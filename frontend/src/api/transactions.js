@@ -70,3 +70,14 @@ export async function validerSimulationApi(id) {
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la validation de la transaction.');
   return donnees;
 }
+
+export async function modifierTransactionApi(id, transaction) {
+  const reponse = await fetchAuthentifie(`/transactions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(transaction),
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la modification de la transaction.');
+  return donnees;
+}

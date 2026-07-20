@@ -5,7 +5,7 @@ import { listerObjectifsApi, creerAllocationApi } from '../api/objectifs';
 import {
   listerTransactionsApi, creerTransactionApi, supprimerTransactionApi,
   creerRetraitEpargneApi, creerVirementEpargneApi, creerVirementVersCourantApi,
-  validerSimulationApi,
+  validerSimulationApi, modifierTransactionApi
 } from '../api/transactions';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import { listerModelesApi } from '../api/modeles';
@@ -46,6 +46,8 @@ function Transactions() {
   const [filtreCategorie, setFiltreCategorie] = useState('');
   const [recherche, setRecherche] = useState('');
   const [nouvelleLigne, setNouvelleLigne] = useState(ligneVide());
+  const [transactionEnEdition, setTransactionEnEdition] = useState(null);
+  const [editionValeurs, setEditionValeurs] = useState({});
 
   useEffect(() => {
     async function chargerInit() {
@@ -366,6 +368,45 @@ function Transactions() {
     }));
   }
 
+  function gererDebutEditionTransaction(t) {
+    setTransactionEnEdition(t.id);
+    setEditionValeurs({
+      date: t.date,
+      description: t.description || '',
+      montant: (t.montant / 100).toFixed(2),
+      moyen_paiement: t.moyen_paiement,
+      categorie_id: String(t.categorie_id),
+    });
+  }
+
+  function gererAnnulerEditionTransaction() {
+    setTransactionEnEdition(null);
+    setEditionValeurs({});
+  }
+
+  async function gererEnregistrerEditionTransaction(t) {
+    try {
+      if (!editionValeurs.montant || parseFloat(editionValeurs.montant) <= 0) {
+        setErreur('Le montant doit être supérieur à zéro.');
+        return;
+      }
+      await modifierTransactionApi(t.id, {
+        date: editionValeurs.date,
+        description: editionValeurs.description || null,
+        montant: Math.round(parseFloat(editionValeurs.montant) * 100),
+        moyen_paiement: editionValeurs.moyen_paiement,
+        categorie_id: Number(editionValeurs.categorie_id),
+        type_transaction: t.type_transaction,
+        est_recurrente: t.est_recurrente || false,
+      });
+      gererAnnulerEditionTransaction();
+      chargerToutesTransactions();
+      chargerTransactionsFiltrees();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -635,39 +676,100 @@ function Transactions() {
                 </td>
               )}
             </tr>
-            {transactionsAvecSolde.map((t) => (
-              <tr key={t.id} className={`${t.est_simulee ? 'ligne-simulee' : ''} ${t.categorie_recurrente ? 'ligne-recurrente' : ''}`}>
-                <td>{t.date}</td>
-                <td>{t.type_transaction === 'revenu' ? 'Revenu' : 'Dépense'}</td>
-                <td>{categories.find((c) => c.id === t.categorie_id)?.nom || '—'}</td>
-                <td className="description-cell">{t.description || '—'}</td>
-                {!estCompteEpargne && <td>{t.moyen_paiement}</td>}
-                {!estCompteEpargne && <td>—</td>}
-                {estCompteEpargne && <td>{t.objectif_nom || '—'}</td>}
-                <td className={t.type_transaction === 'revenu' ? 'montant-revenu' : 'montant-depense'}>
-                  {t.type_transaction === 'revenu' ? '+' : '-'}{(t.montant / 100).toFixed(2)} €
-                </td>
-                <td className="solde-cell">{(t.soldeReel / 100).toFixed(2)} €</td>
-                <td>
-                  <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)} title='Supprimer'>✕</button>
-                </td>
-                {!estCompteEpargne && (
-                  <td>
-                    {t.est_simulee ? (
-                      <button
-                        className="btn-valider-simulation"
-                        onClick={() => gererValidationSimulation(t.id)}
-                        title="Passer en réelle"
+            {transactionsAvecSolde.map((t) => {
+              const estModifiable = !t.objectif_id && t.description !== 'Virement vers épargne'
+                && t.description !== 'Virement depuis compte courant'
+                && t.description !== 'Virement vers compte courant'
+                && t.description !== 'Virement depuis épargne';
+              const enEdition = transactionEnEdition === t.id;
+
+              if (enEdition) {
+                return (
+                  <tr key={t.id} className="ligne-ajout">
+                    <td>
+                      <input
+                        type="date"
+                        value={editionValeurs.date}
+                        onChange={(e) => setEditionValeurs({ ...editionValeurs, date: e.target.value })}
+                      />
+                    </td>
+                    <td>{t.type_transaction === 'revenu' ? 'Revenu' : 'Dépense'}</td>
+                    <td>
+                      <select
+                        value={editionValeurs.categorie_id}
+                        onChange={(e) => setEditionValeurs({ ...editionValeurs, categorie_id: e.target.value })}
                       >
-                        ✓
-                      </button>
-                    ) : (
-                      <span>—</span>
+                        {aplatirPourSelect(categories.filter((c) => c.type_categorie === t.type_transaction)).map((cat) => (
+                          <option key={cat.id} value={cat.id}>{cat.nomAffiche}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={editionValeurs.description}
+                        onChange={(e) => setEditionValeurs({ ...editionValeurs, description: e.target.value })}
+                      />
+                    </td>
+                    {!estCompteEpargne && (
+                      <td>
+                        <select
+                          value={editionValeurs.moyen_paiement}
+                          onChange={(e) => setEditionValeurs({ ...editionValeurs, moyen_paiement: e.target.value })}
+                        >
+                          {MOYENS_PAIEMENT.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </td>
                     )}
+                    {!estCompteEpargne && <td>—</td>}
+                    {estCompteEpargne && <td>—</td>}
+                    <td>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={editionValeurs.montant}
+                        onChange={(e) => setEditionValeurs({ ...editionValeurs, montant: e.target.value })}
+                      />
+                    </td>
+                    <td>—</td>
+                    <td className="actions-cell">
+                      <button className="btn-valider-simulation" onClick={() => gererEnregistrerEditionTransaction(t)}>✓</button>
+                      <button className="btn-supprimer-ligne" onClick={gererAnnulerEditionTransaction}>✕</button>
+                    </td>
+                    {!estCompteEpargne && <td></td>}
+                  </tr>
+                );
+              }
+
+              return (
+                <tr key={t.id} className={`${t.est_simulee ? 'ligne-simulee' : ''} ${t.categorie_recurrente ? 'ligne-recurrente' : ''}`}>
+                  <td>{t.date}</td>
+                  <td>{t.type_transaction === 'revenu' ? 'Revenu' : 'Dépense'}</td>
+                  <td>{categories.find((c) => c.id === t.categorie_id)?.nom || '—'}</td>
+                  <td className="description-cell">{t.description || '—'}</td>
+                  {!estCompteEpargne && <td>{t.moyen_paiement}</td>}
+                  {!estCompteEpargne && <td>—</td>}
+                  {estCompteEpargne && <td>{t.objectif_nom || '—'}</td>}
+                  <td className={t.type_transaction === 'revenu' ? 'montant-revenu' : 'montant-depense'}>
+                    {t.type_transaction === 'revenu' ? '+' : '-'}{(t.montant / 100).toFixed(2)} €
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td className="solde-cell">{(t.soldeReel / 100).toFixed(2)} €</td>
+                  <td className="actions-cell">
+                    {estModifiable && (
+                      <button className="btn-valider-simulation" onClick={() => gererDebutEditionTransaction(t)} title="Modifier">✎</button>
+                    )}
+                    {t.est_simulee && (
+                      <button className="btn-valider-simulation" onClick={() => gererValidationSimulation(t.id)} title="Passer en réelle">✓</button>
+                    )}
+                    <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)}>✕</button>
+                  </td>
+                  {!estCompteEpargne && <td>{t.est_simulee ? '✓' : ''}</td>}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
