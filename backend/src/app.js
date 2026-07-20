@@ -49,10 +49,6 @@ app.use('/modeles', modelesRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/foyers', foyersRoutes);
 
-app.get('/debug-sentry', (req, res) => {
-    throw new Error('Test Sentry backend');
-});
-
 Sentry.setupExpressErrorHandler(app);
 app.use(gestionErreurs);
 
