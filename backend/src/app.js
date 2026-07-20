@@ -28,7 +28,7 @@ const app = express();
 
 const basicAuth = require('express-basic-auth');
 const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./swagger');
+const swaggerSpec = require('./config/swagger');
 
 app.use(helmet());
 const originesAutorisees = process.env.FRONTEND_URL
