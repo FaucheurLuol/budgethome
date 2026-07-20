@@ -736,8 +736,8 @@ function Transactions() {
                     </td>
                     <td>—</td>
                     <td className="actions-cell">
-                      <button className="btn-valider-simulation" onClick={() => gererEnregistrerEditionTransaction(t)} title='Valider le changement'>✓</button>
-                      <button className="btn-supprimer-ligne" onClick={gererAnnulerEditionTransaction} title='Annuler le changement'>✕</button>
+                      <button className="btn-valider-simulation" onClick={() => gererEnregistrerEditionTransaction(t)} title="Valider">✓</button>
+                      <button className="btn-supprimer-ligne" onClick={gererAnnulerEditionTransaction} title="Annuler">✕</button>
                     </td>
                     {!estCompteEpargne && <td></td>}
                   </tr>
@@ -761,7 +761,7 @@ function Transactions() {
                     {estModifiable && (
                       <button className="btn-valider-simulation" onClick={() => gererDebutEditionTransaction(t)} title="Modifier">✎</button>
                     )}
-                    <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)}>✕</button>
+                    <button className="btn-supprimer-ligne" onClick={() => gererSuppression(t.id)} title="Supprimer">✕</button>
                   </td>
                   {!estCompteEpargne && 
                     <td>
