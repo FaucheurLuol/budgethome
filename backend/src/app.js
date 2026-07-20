@@ -1,3 +1,11 @@
+const Sentry = require('@sentry/node');
+
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 1.0,
+});
+
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -41,5 +49,11 @@ app.use('/modeles', modelesRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/foyers', foyersRoutes);
 
+app.get('/debug-sentry', (req, res) => {
+    throw new Error('Test Sentry backend');
+});
+
+Sentry.setupExpressErrorHandler(app);
 app.use(gestionErreurs);
+
 module.exports = app;
