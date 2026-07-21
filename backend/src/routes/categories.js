@@ -10,6 +10,16 @@ async function obtenirFoyerId(utilisateurId) {
 }
 
 // GET /categories - partagées par foyer, ou propres à moi si pas de foyer
+/**
+ * @swagger
+ * /categories:
+ *   get:
+ *     summary: Liste les catégories du foyer (ou propres à moi si pas de foyer)
+ *     tags: [Catégories]
+ *     responses:
+ *       200:
+ *         description: Liste des catégories
+ */
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
@@ -36,6 +46,36 @@ router.get('/', verifierToken, async (req, res, next) => {
 });
 
 // POST /categories - création (racine ou sous-catégorie)
+/**
+ * @swagger
+ * /categories:
+ *   post:
+ *     summary: Crée une catégorie (racine ou sous-catégorie)
+ *     tags: [Catégories]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nom, type_categorie]
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               type_categorie:
+ *                 type: string
+ *                 enum: [depense, revenu]
+ *               parent_id:
+ *                 type: integer
+ *                 nullable: true
+ *               est_recurrente:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Catégorie créée
+ *       400:
+ *         description: Nom/type manquant, ou catégorie parente introuvable
+ */
 router.post('/', verifierToken, async (req, res, next) => {
   try {
     const { nom, parent_id, type_categorie, est_recurrente } = req.body;
@@ -69,6 +109,41 @@ router.post('/', verifierToken, async (req, res, next) => {
 });
 
 // PUT /categories/:id - modification
+/**
+ * @swagger
+ * /categories/{id}:
+ *   put:
+ *     summary: Modifie une catégorie
+ *     tags: [Catégories]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               parent_id:
+ *                 type: integer
+ *                 nullable: true
+ *               type_categorie:
+ *                 type: string
+ *                 enum: [depense, revenu]
+ *               est_recurrente:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Catégorie modifiée
+ *       404:
+ *         description: Catégorie introuvable
+ */
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
     const { nom, parent_id, type_categorie, est_recurrente } = req.body;
@@ -95,6 +170,26 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /categories/:id - suppression
+/**
+ * @swagger
+ * /categories/{id}:
+ *   delete:
+ *     summary: Supprime une catégorie
+ *     tags: [Catégories]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimée
+ *       404:
+ *         description: Catégorie introuvable
+ *       409:
+ *         description: Des transactions/modèles utilisent encore cette catégorie
+ */
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
@@ -116,6 +211,16 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
 });
 
 // POST /categories/epargne-defaut - garantit l'existence des catégories "Épargne"
+/**
+ * @swagger
+ * /categories/epargne-defaut:
+ *   post:
+ *     summary: Garantit l'existence des catégories "Épargne" (dépense + revenu)
+ *     tags: [Catégories]
+ *     responses:
+ *       200:
+ *         description: Catégories Épargne (trouvées ou créées)
+ */
 router.post('/epargne-defaut', verifierToken, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);

@@ -15,6 +15,24 @@ async function verifierAccesCompte(compteId, utilisateurId) {
 // ---------- BUDGET PAR DÉFAUT ----------
 
 // GET /budgets/defaut?compte_id=X
+/**
+ * @swagger
+ * /budgets/defaut:
+ *   get:
+ *     summary: Liste les budgets par défaut d'un compte
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: query
+ *         name: compte_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Liste des budgets par défaut
+ *       404:
+ *         description: Compte introuvable
+ */
 router.get('/defaut', verifierToken, async (req, res, next) => {
   try {
     const { compte_id } = req.query;
@@ -40,6 +58,35 @@ router.get('/defaut', verifierToken, async (req, res, next) => {
 });
 
 // POST /budgets/defaut
+/**
+ * @swagger
+ * /budgets/defaut:
+ *   post:
+ *     summary: Crée un budget par défaut pour une catégorie sur un compte
+ *     tags: [Budgets]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [compte_id, categorie_id, montant_par_defaut]
+ *             properties:
+ *               compte_id:
+ *                 type: integer
+ *               categorie_id:
+ *                 type: integer
+ *               montant_par_defaut:
+ *                 type: integer
+ *                 description: Montant en centimes
+ *     responses:
+ *       201:
+ *         description: Budget par défaut créé
+ *       400:
+ *         description: Champs manquants
+ *       404:
+ *         description: Compte introuvable
+ */
 router.post('/defaut', verifierToken, async (req, res, next) => {
   try {
     const { compte_id, categorie_id, montant_par_defaut } = req.body;
@@ -65,6 +112,33 @@ router.post('/defaut', verifierToken, async (req, res, next) => {
 });
 
 // PUT /budgets/defaut/:id
+/**
+ * @swagger
+ * /budgets/defaut/{id}:
+ *   put:
+ *     summary: Modifie le montant d'un budget par défaut
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               montant_par_defaut:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Budget par défaut modifié
+ *       404:
+ *         description: Budget introuvable
+ */
 router.put('/defaut/:id', verifierToken, async (req, res, next) => {
   try {
     const { montant_par_defaut } = req.body;
@@ -91,6 +165,24 @@ router.put('/defaut/:id', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /budgets/defaut/:id
+/**
+ * @swagger
+ * /budgets/defaut/{id}:
+ *   delete:
+ *     summary: Supprime un budget par défaut
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimé
+ *       404:
+ *         description: Budget introuvable
+ */
 router.delete('/defaut/:id', verifierToken, async (req, res, next) => {
   try {
     const existant = await pool.query('SELECT compte_id FROM budget_defaut WHERE id = $1', [req.params.id]);
@@ -113,6 +205,30 @@ router.delete('/defaut/:id', verifierToken, async (req, res, next) => {
 // ---------- BUDGET MENSUEL ----------
 
 // GET /budgets/mensuel?compte_id=X&mois=2026-07-01
+/**
+ * @swagger
+ * /budgets/mensuel:
+ *   get:
+ *     summary: Liste les budgets mensuels d'un compte pour un mois donné
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: query
+ *         name: compte_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: mois
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2026-07-01"
+ *     responses:
+ *       200:
+ *         description: Liste des budgets mensuels
+ *       404:
+ *         description: Compte introuvable
+ */
 router.get('/mensuel', verifierToken, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.query;
@@ -138,6 +254,31 @@ router.get('/mensuel', verifierToken, async (req, res, next) => {
 });
 
 // POST /budgets/mensuel/generer - reconduction automatique depuis les budgets par défaut
+/**
+ * @swagger
+ * /budgets/mensuel/generer:
+ *   post:
+ *     summary: Génère les budgets mensuels à partir des budgets par défaut (idempotent)
+ *     tags: [Budgets]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [compte_id, mois]
+ *             properties:
+ *               compte_id:
+ *                 type: integer
+ *               mois:
+ *                 type: string
+ *                 example: "2026-07-01"
+ *     responses:
+ *       201:
+ *         description: Budgets mensuels générés (peut être vide si déjà existants)
+ *       404:
+ *         description: Compte introuvable
+ */
 router.post('/mensuel/generer', verifierToken, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.body;
@@ -168,6 +309,30 @@ router.post('/mensuel/generer', verifierToken, async (req, res, next) => {
 });
 
 // GET /budgets/mensuel/suivi?compte_id=X&mois=2026-07-01 - budget vs dépenses réelles
+/**
+ * @swagger
+ * /budgets/mensuel/suivi:
+ *   get:
+ *     summary: Suivi budget vs dépenses réelles (agrégation récursive des sous-catégories)
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: query
+ *         name: compte_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: mois
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2026-07-01"
+ *     responses:
+ *       200:
+ *         description: Détail budget/dépensé/reste par catégorie
+ *       404:
+ *         description: Compte introuvable
+ */
 router.get('/mensuel/suivi', verifierToken, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.query;
@@ -214,53 +379,34 @@ router.get('/mensuel/suivi', verifierToken, async (req, res, next) => {
   }
 });
 
-// PUT /budgets/mensuel/:id - modification manuelle (montant et/ou catégorie)
-router.put('/mensuel/:id', verifierToken, async (req, res, next) => {
-  try {
-    const { montant, categorie_id } = req.body;
-
-    const existant = await pool.query('SELECT compte_id FROM budget_mensuel WHERE id = $1', [req.params.id]);
-    if (existant.rows.length === 0) {
-      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
-    }
-
-    const acces = await verifierAccesCompte(existant.rows[0].compte_id, req.utilisateur.id);
-    if (!acces) {
-      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
-    }
-
-    const resultat = await pool.query(
-      'UPDATE budget_mensuel SET montant = $1, categorie_id = COALESCE($2, categorie_id) WHERE id = $3 RETURNING *',
-      [montant, categorie_id || null, req.params.id]
-    );
-
-    res.json(resultat.rows[0]);
-  } catch (erreur) {
-    next(erreur);
-  }
-});
-
-// DELETE /budgets/mensuel/:id
-router.delete('/mensuel/:id', verifierToken, async (req, res, next) => {
-  try {
-    const existant = await pool.query('SELECT compte_id FROM budget_mensuel WHERE id = $1', [req.params.id]);
-    if (existant.rows.length === 0) {
-      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
-    }
-
-    const acces = await verifierAccesCompte(existant.rows[0].compte_id, req.utilisateur.id);
-    if (!acces) {
-      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
-    }
-
-    await pool.query('DELETE FROM budget_mensuel WHERE id = $1', [req.params.id]);
-    res.status(204).send();
-  } catch (erreur) {
-    next(erreur);
-  }
-});
-
 // GET /budgets/solde-restant?compte_id=X&mois=2026-07-01 - solde perso disponible pour budgétiser
+/**
+ * @swagger
+ * /budgets/solde-restant:
+ *   get:
+ *     summary: Solde perso restant à budgétiser, basé sur la répartition active
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: query
+ *         name: compte_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Doit être un compte courant personnel (un seul propriétaire)
+ *       - in: query
+ *         name: mois
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "2026-07-01"
+ *     responses:
+ *       200:
+ *         description: Solde restant calculé (ou null si aucune répartition active)
+ *       400:
+ *         description: Compte partagé ou non courant, non applicable
+ *       404:
+ *         description: Compte introuvable
+ */
 router.get('/solde-restant', verifierToken, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.query;
@@ -328,6 +474,99 @@ router.get('/solde-restant', verifierToken, async (req, res, next) => {
       part_a_verser: partAVerser,
       total_budgete: totalBudgete,
     });
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+// PUT /budgets/mensuel/:id - modification manuelle (montant et/ou catégorie)
+/**
+ * @swagger
+ * /budgets/mensuel/{id}:
+ *   put:
+ *     summary: Modifie un budget mensuel (montant et/ou catégorie)
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               montant:
+ *                 type: integer
+ *               categorie_id:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Budget mensuel modifié
+ *       404:
+ *         description: Budget mensuel introuvable
+ */
+router.put('/mensuel/:id', verifierToken, async (req, res, next) => {
+  try {
+    const { montant, categorie_id } = req.body;
+
+    const existant = await pool.query('SELECT compte_id FROM budget_mensuel WHERE id = $1', [req.params.id]);
+    if (existant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
+    }
+
+    const acces = await verifierAccesCompte(existant.rows[0].compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
+    }
+
+    const resultat = await pool.query(
+      'UPDATE budget_mensuel SET montant = $1, categorie_id = COALESCE($2, categorie_id) WHERE id = $3 RETURNING *',
+      [montant, categorie_id || null, req.params.id]
+    );
+
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+// DELETE /budgets/mensuel/:id
+/**
+ * @swagger
+ * /budgets/mensuel/{id}:
+ *   delete:
+ *     summary: Supprime un budget mensuel
+ *     tags: [Budgets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimé
+ *       404:
+ *         description: Budget mensuel introuvable
+ */
+router.delete('/mensuel/:id', verifierToken, async (req, res, next) => {
+  try {
+    const existant = await pool.query('SELECT compte_id FROM budget_mensuel WHERE id = $1', [req.params.id]);
+    if (existant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
+    }
+
+    const acces = await verifierAccesCompte(existant.rows[0].compte_id, req.utilisateur.id);
+    if (!acces) {
+      return res.status(404).json({ erreur: 'Budget mensuel introuvable.' });
+    }
+
+    await pool.query('DELETE FROM budget_mensuel WHERE id = $1', [req.params.id]);
+    res.status(204).send();
   } catch (erreur) {
     next(erreur);
   }

@@ -17,6 +17,34 @@ function poserCookieToken(res, token) {
 }
 
 // Inscription
+/**
+ * @swagger
+ * /auth/inscription:
+ *   post:
+ *     summary: Créer un compte utilisateur
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nom, email, mot_de_passe]
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               mot_de_passe:
+ *                 type: string
+ *                 description: Minimum 14 caractères, majuscule, minuscule, chiffre, caractère spécial
+ *     responses:
+ *       201:
+ *         description: Compte créé, cookie de session posé
+ *       400:
+ *         description: Validation échouée (nom, email ou mot de passe invalide)
+ */
 router.post('/inscription', limiteurAuth, async (req, res, next) => {
   try {
     const { nom, email, mot_de_passe } = req.body;
@@ -63,6 +91,31 @@ router.post('/inscription', limiteurAuth, async (req, res, next) => {
 });
 
 // Connexion
+/**
+ * @swagger
+ * /auth/connexion:
+ *   post:
+ *     summary: Authentifier un utilisateur
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, mot_de_passe]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               mot_de_passe:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Connexion réussie, cookie de session posé
+ *       401:
+ *         description: Email ou mot de passe incorrect
+ */
 router.post('/connexion', limiteurAuth, async (req, res, next) => {
   try {
     const { email, mot_de_passe } = req.body;
@@ -99,7 +152,74 @@ router.post('/connexion', limiteurAuth, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/moi:
+ *   get:
+ *     summary: Récupérer les infos de l'utilisateur connecté (vérifie la session)
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Utilisateur trouvé
+ *       401:
+ *         description: Non authentifié
+ */
+router.get('/moi', verifierToken, async (req, res, next) => {
+  try {
+    const resultat = await pool.query('SELECT id, nom, email, theme FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
+    if (resultat.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Utilisateur introuvable.' });
+    }
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+/**
+ * @swagger
+ * /auth/deconnexion:
+ *   post:
+ *     summary: Déconnexion (efface le cookie de session)
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Déconnecté
+ */
+router.post('/deconnexion', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  });
+  res.json({ message: 'Déconnecté.' });
+});
+
 // Modification du mot de passe
+/**
+ * @swagger
+ * /auth/mot-de-passe:
+ *   put:
+ *     summary: Changer son mot de passe
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ancien_mot_de_passe, nouveau_mot_de_passe]
+ *             properties:
+ *               ancien_mot_de_passe:
+ *                 type: string
+ *               nouveau_mot_de_passe:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Mot de passe modifié
+ *       401:
+ *         description: Ancien mot de passe incorrect
+ */
 router.put('/mot-de-passe', verifierToken, async (req, res, next) => {
   try {
     const { ancien_mot_de_passe, nouveau_mot_de_passe } = req.body;
@@ -129,6 +249,27 @@ router.put('/mot-de-passe', verifierToken, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/theme:
+ *   put:
+ *     summary: Changer le thème (clair/sombre)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [theme]
+ *             properties:
+ *               theme:
+ *                 type: string
+ *                 enum: [clair, sombre]
+ *     responses:
+ *       200:
+ *         description: Thème mis à jour
+ */
 router.put('/theme', verifierToken, async (req, res, next) => {
   try {
     const { theme } = req.body;
@@ -142,27 +283,6 @@ router.put('/theme', verifierToken, async (req, res, next) => {
   } catch (erreur) {
     next(erreur);
   }
-});
-
-router.get('/moi', verifierToken, async (req, res, next) => {
-  try {
-    const resultat = await pool.query('SELECT id, nom, email, theme FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
-    if (resultat.rows.length === 0) {
-      return res.status(404).json({ erreur: 'Utilisateur introuvable.' });
-    }
-    res.json(resultat.rows[0]);
-  } catch (erreur) {
-    next(erreur);
-  }
-});
-
-router.post('/deconnexion', (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  });
-  res.json({ message: 'Déconnecté.' });
 });
 
 module.exports = router;

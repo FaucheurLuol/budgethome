@@ -6,6 +6,51 @@ const { calculerRepartition } = require('../services/repartitionCompteCommun');
 const router = express.Router();
 
 // POST /repartition - calcule et sauvegarde une simulation
+/**
+ * @swagger
+ * /repartition:
+ *   post:
+ *     summary: Calcule et historise une répartition du compte commun
+ *     tags: [Répartition]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [revenus, depenses, mois]
+ *             properties:
+ *               revenus:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     utilisateur_id:
+ *                       type: integer
+ *                     personne:
+ *                       type: string
+ *                     source:
+ *                       type: string
+ *                     montant:
+ *                       type: integer
+ *               depenses:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     nom:
+ *                       type: string
+ *                     montant:
+ *                       type: integer
+ *               mois:
+ *                 type: string
+ *                 example: "2026-07-01"
+ *     responses:
+ *       201:
+ *         description: Répartition calculée et enregistrée
+ *       400:
+ *         description: Moins de 2 personnes, aucune dépense, ou revenu total nul
+ */
 router.post('/', verifierToken, async (req, res, next) => {
   try {
     const { revenus, depenses, mois } = req.body;
@@ -30,6 +75,16 @@ router.post('/', verifierToken, async (req, res, next) => {
 });
 
 // GET /repartition/historique - liste toutes les simulations passées
+/**
+ * @swagger
+ * /repartition/historique:
+ *   get:
+ *     summary: Historique des répartitions du foyer (ou personnelles si pas de foyer)
+ *     tags: [Répartition]
+ *     responses:
+ *       200:
+ *         description: Liste des répartitions passées
+ */
 router.get('/historique', verifierToken, async (req, res, next) => {
   try {
     const moi = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
@@ -57,6 +112,16 @@ router.get('/historique', verifierToken, async (req, res, next) => {
 });
 
 // GET /repartition/active - récupère la répartition actuellement active (pour le Dashboard)
+/**
+ * @swagger
+ * /repartition/active:
+ *   get:
+ *     summary: Répartition actuellement active du foyer
+ *     tags: [Répartition]
+ *     responses:
+ *       200:
+ *         description: Répartition active, ou null si aucune
+ */
 router.get('/active', verifierToken, async (req, res, next) => {
   try {
     const moi = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
@@ -86,6 +151,24 @@ router.get('/active', verifierToken, async (req, res, next) => {
 });
 
 // PATCH /repartition/:id/activer - marque cette répartition comme active, désactive les autres
+/**
+ * @swagger
+ * /repartition/{id}/activer:
+ *   patch:
+ *     summary: Active une répartition (désactive automatiquement les autres)
+ *     tags: [Répartition]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Répartition activée
+ *       404:
+ *         description: Répartition introuvable
+ */
 router.patch('/:id/activer', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -112,6 +195,24 @@ router.patch('/:id/activer', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /repartition/:id
+/**
+ * @swagger
+ * /repartition/{id}:
+ *   delete:
+ *     summary: Supprime une répartition de l'historique
+ *     tags: [Répartition]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimée
+ *       404:
+ *         description: Répartition introuvable
+ */
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
     const verif = await pool.query('SELECT 1 FROM repartitions_communes WHERE id = $1', [req.params.id]);

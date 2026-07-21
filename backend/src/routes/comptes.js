@@ -5,6 +5,16 @@ const verifierToken = require('../middleware/auth');
 const router = express.Router();
 
 // GET /comptes - liste les comptes visibles par l'utilisateur connecté (non archivés par lui)
+/**
+ * @swagger
+ * /comptes:
+ *   get:
+ *     summary: Liste les comptes actifs de l'utilisateur (favoris en premier)
+ *     tags: [Comptes]
+ *     responses:
+ *       200:
+ *         description: Liste des comptes
+ */
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -23,6 +33,16 @@ router.get('/', verifierToken, async (req, res, next) => {
 });
 
 // GET /comptes/archives - recupère le nombre de propriétaire des comptes archivés
+/**
+ * @swagger
+ * /comptes/archives:
+ *   get:
+ *     summary: Liste les comptes archivés par l'utilisateur
+ *     tags: [Comptes]
+ *     responses:
+ *       200:
+ *         description: Liste des comptes archivés
+ */
 router.get('/archives', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -41,6 +61,24 @@ router.get('/archives', verifierToken, async (req, res, next) => {
 });
 
 // GET /comptes/:id - détail d'un compte (si l'utilisateur y a accès)
+/**
+ * @swagger
+ * /comptes/{id}:
+ *   get:
+ *     summary: Détail d'un compte
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Détail du compte
+ *       404:
+ *         description: Compte introuvable
+ */
 router.get('/:id', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -62,6 +100,26 @@ router.get('/:id', verifierToken, async (req, res, next) => {
 });
 
 // POST /comptes/:id/quitter - je quitte ce compte partagé (il devient perso pour l'autre)
+/**
+ * @swagger
+ * /comptes/{id}/quitter:
+ *   post:
+ *     summary: Quitte un compte partagé (reste perso pour l'autre propriétaire)
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Compte quitté
+ *       400:
+ *         description: Seul propriétaire, utiliser la suppression définitive
+ *       404:
+ *         description: Compte introuvable
+ */
 router.post('/:id/quitter', verifierToken, async (req, res, next) => {
   try {
     const proprietaires = await pool.query(
@@ -87,6 +145,36 @@ router.post('/:id/quitter', verifierToken, async (req, res, next) => {
 });
 
 // POST /comptes/:id/inviter - ajoute un utilisateur (de mon foyer) à un compte que je possède déjà
+/**
+ * @swagger
+ * /comptes/{id}/inviter:
+ *   post:
+ *     summary: Ajoute un membre du foyer à un compte courant (le rend partagé)
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [utilisateur_id]
+ *             properties:
+ *               utilisateur_id:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Utilisateur ajouté au compte
+ *       400:
+ *         description: Déjà propriétaire, ou pas un compte courant, ou hors du foyer
+ *       404:
+ *         description: Compte introuvable
+ */
 router.post('/:id/inviter', verifierToken, async (req, res, next) => {
   try {
     const { utilisateur_id } = req.body;
@@ -136,6 +224,38 @@ router.post('/:id/inviter', verifierToken, async (req, res, next) => {
 });
 
 // POST /comptes - création d'un compte perso ou partagé
+/**
+ * @swagger
+ * /comptes:
+ *   post:
+ *     summary: Crée un compte (personnel ou partagé)
+ *     tags: [Comptes]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nom, type_compte, solde_initial]
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               type_compte:
+ *                 type: string
+ *                 enum: [Compte courant, Livret A, PEL, LDD, Action, Crypto]
+ *               solde_initial:
+ *                 type: integer
+ *                 description: Montant en centimes
+ *               partage:
+ *                 type: boolean
+ *               utilisateurs_associes:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       201:
+ *         description: Compte créé
+ */
 router.post('/', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -176,6 +296,35 @@ router.post('/', verifierToken, async (req, res, next) => {
 });
 
 // PUT /comptes/:id - modification (nom, type_compte)
+/**
+ * @swagger
+ * /comptes/{id}:
+ *   put:
+ *     summary: Modifie un compte (nom, type)
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               type_compte:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Compte modifié
+ *       404:
+ *         description: Compte introuvable
+ */
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
     const { nom, type_compte } = req.body;
@@ -200,6 +349,24 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 });
 
 // PATCH /comptes/:id/archiver
+/**
+ * @swagger
+ * /comptes/{id}/archiver:
+ *   patch:
+ *     summary: Archive le compte pour l'utilisateur courant uniquement
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Compte archivé
+ *       404:
+ *         description: Compte introuvable
+ */
 router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -216,6 +383,24 @@ router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
 });
 
 // PATCH /comptes/:id/desarchiver
+/**
+ * @swagger
+ * /comptes/{id}/desarchiver:
+ *   patch:
+ *     summary: Désarchive le compte pour l'utilisateur courant
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Compte désarchivé
+ *       404:
+ *         description: Compte introuvable
+ */
 router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -233,6 +418,24 @@ router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
 });
 
 // PATCH /comptes/:id/favori - bascule le statut favori d'un compte
+/**
+ * @swagger
+ * /comptes/{id}/favori:
+ *   patch:
+ *     summary: Bascule le statut favori d'un compte
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Statut favori mis à jour
+ *       404:
+ *         description: Compte introuvable
+ */
 router.patch('/:id/favori', verifierToken, async (req, res, next) => {
   try {
     const verifAcces = await pool.query(
@@ -255,6 +458,26 @@ router.patch('/:id/favori', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /comptes/:id - suppression définitive (uniquement si aucune transaction liée)
+/**
+ * @swagger
+ * /comptes/{id}:
+ *   delete:
+ *     summary: Supprime un compte (refusée si transactions existantes)
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimé
+ *       404:
+ *         description: Compte introuvable
+ *       409:
+ *         description: Des transactions existent encore
+ */
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
     const verifAcces = await pool.query(
@@ -273,6 +496,26 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /comptes/:id/definitif - suppression définitive
+/**
+ * @swagger
+ * /comptes/{id}/definitif:
+ *   delete:
+ *     summary: Supprime définitivement un compte (transactions, budgets, modèles associés)
+ *     tags: [Comptes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimé définitivement
+ *       400:
+ *         description: Compte partagé, doit être quitté au préalable
+ *       404:
+ *         description: Compte introuvable
+ */
 router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {

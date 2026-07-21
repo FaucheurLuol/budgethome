@@ -10,6 +10,16 @@ function genererCode() {
 }
 
 // GET /foyers/moi - infos du foyer de l'utilisateur connecté
+/**
+ * @swagger
+ * /foyers/moi:
+ *   get:
+ *     summary: Infos du foyer de l'utilisateur connecté
+ *     tags: [Foyers]
+ *     responses:
+ *       200:
+ *         description: Foyer trouvé (code d'invitation), ou null si aucun
+ */
 router.get('/moi', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -31,6 +41,18 @@ router.get('/moi', verifierToken, async (req, res, next) => {
 });
 
 // POST /foyers - créer un nouveau foyer et y rattacher l'utilisateur connecté
+/**
+ * @swagger
+ * /foyers:
+ *   post:
+ *     summary: Crée un nouveau foyer, génère un code, y rattache l'utilisateur
+ *     tags: [Foyers]
+ *     responses:
+ *       201:
+ *         description: Foyer créé
+ *       400:
+ *         description: Appartient déjà à un foyer
+ */
 router.post('/', verifierToken, async (req, res, next) => {
   try {
     const dejaDansFoyer = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
@@ -60,6 +82,30 @@ router.post('/', verifierToken, async (req, res, next) => {
 });
 
 // POST /foyers/rejoindre - rejoindre un foyer existant via son code
+/**
+ * @swagger
+ * /foyers/rejoindre:
+ *   post:
+ *     summary: Rejoint un foyer existant via son code d'invitation
+ *     tags: [Foyers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Foyer rejoint
+ *       400:
+ *         description: Appartient déjà à un foyer
+ *       404:
+ *         description: Code d'invitation invalide
+ */
 router.post('/rejoindre', verifierToken, async (req, res, next) => {
   try {
     const { code } = req.body;
@@ -87,6 +133,18 @@ router.post('/rejoindre', verifierToken, async (req, res, next) => {
 });
 
 // POST /foyers/quitter - quitte le foyer actuel
+/**
+ * @swagger
+ * /foyers/quitter:
+ *   post:
+ *     summary: Quitte son foyer actuel
+ *     tags: [Foyers]
+ *     responses:
+ *       200:
+ *         description: Foyer quitté
+ *       400:
+ *         description: N'appartient à aucun foyer
+ */
 router.post('/quitter', verifierToken, async (req, res, next) => {
   try {
     const moi = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);

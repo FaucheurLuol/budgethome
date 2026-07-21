@@ -13,6 +13,38 @@ async function verifierAccesCompte(compteId, utilisateurId) {
 }
 
 // GET /transactions?compte_id=X - liste les transactions d'un compte donné
+/**
+ * @swagger
+ * /transactions:
+ *   get:
+ *     summary: Liste les transactions d'un compte, avec filtres optionnels
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: query
+ *         name: compte_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: mois
+ *         schema:
+ *           type: string
+ *           example: "2026-07"
+ *       - in: query
+ *         name: categorie_id
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: recherche
+ *         schema:
+ *           type: string
+ *         description: Recherche texte dans la description
+ *     responses:
+ *       200:
+ *         description: Liste des transactions (avec allocation d'épargne éventuelle)
+ *       404:
+ *         description: Compte introuvable
+ */
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const { compte_id, mois, categorie_id, recherche } = req.query;
@@ -69,6 +101,49 @@ router.get('/', verifierToken, async (req, res, next) => {
 });
 
 // POST /transactions - création
+/**
+ * @swagger
+ * /transactions:
+ *   post:
+ *     summary: Crée une transaction classique
+ *     tags: [Transactions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date, montant, moyen_paiement, categorie_id, compte_id, type_transaction]
+ *             properties:
+ *               date:
+ *                 type: string
+ *                 example: "2026-07-16"
+ *               montant:
+ *                 type: integer
+ *                 description: En centimes, doit être > 0
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               moyen_paiement:
+ *                 type: string
+ *                 enum: [CB, Virement, Especes, Prelevement, Cheque]
+ *               categorie_id:
+ *                 type: integer
+ *               compte_id:
+ *                 type: integer
+ *               type_transaction:
+ *                 type: string
+ *                 enum: [depense, revenu]
+ *               est_simulee:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Transaction créée
+ *       400:
+ *         description: Champs manquants ou montant invalide
+ *       404:
+ *         description: Compte introuvable
+ */
 router.post('/', verifierToken, async (req, res, next) => {
   try {
     const {
@@ -104,6 +179,48 @@ router.post('/', verifierToken, async (req, res, next) => {
 });
 
 // PUT /transactions/:id - modification
+/**
+ * @swagger
+ * /transactions/{id}:
+ *   put:
+ *     summary: Modifie une transaction classique
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               date:
+ *                 type: string
+ *               montant:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               moyen_paiement:
+ *                 type: string
+ *               categorie_id:
+ *                 type: integer
+ *               type_transaction:
+ *                 type: string
+ *               est_recurrente:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Transaction modifiée
+ *       400:
+ *         description: Montant invalide
+ *       404:
+ *         description: Transaction introuvable
+ */
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
     const {
@@ -144,6 +261,24 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /transactions/:id - suppression
+/**
+ * @swagger
+ * /transactions/{id}:
+ *   delete:
+ *     summary: Supprime une transaction
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimée
+ *       404:
+ *         description: Transaction introuvable
+ */
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
     const resultatExistant = await pool.query(
@@ -167,6 +302,45 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
 });
 
 // POST /transactions/retrait-epargne - retrait d'un compte d'épargne, flèchage obligatoire
+/**
+ * @swagger
+ * /transactions/retrait-epargne:
+ *   post:
+ *     summary: Retrait d'un compte d'épargne, flèchage obligatoire vers un objectif
+ *     tags: [Transactions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date, montant, moyen_paiement, categorie_id, compte_id, objectif_id, montant_fleche]
+ *             properties:
+ *               date:
+ *                 type: string
+ *               montant:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               moyen_paiement:
+ *                 type: string
+ *               categorie_id:
+ *                 type: integer
+ *               compte_id:
+ *                 type: integer
+ *               objectif_id:
+ *                 type: integer
+ *               montant_fleche:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Retrait effectué et fléché
+ *       400:
+ *         description: Champs manquants, montant invalide, ou objectif requis
+ *       404:
+ *         description: Compte ou objectif introuvable
+ */
 router.post('/retrait-epargne', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -235,6 +409,46 @@ router.post('/retrait-epargne', verifierToken, async (req, res, next) => {
 });
 
 // POST /transactions/virement-epargne - dépense compte courant + dépôt automatique sur un livret
+/**
+ * @swagger
+ * /transactions/virement-epargne:
+ *   post:
+ *     summary: Virement automatisé compte courant vers épargne (catégorie "Épargne" auto-gérée)
+ *     tags: [Transactions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date, montant, compte_courant_id, compte_epargne_id]
+ *             properties:
+ *               date:
+ *                 type: string
+ *               montant:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               compte_courant_id:
+ *                 type: integer
+ *               compte_epargne_id:
+ *                 type: integer
+ *               objectif_id:
+ *                 type: integer
+ *                 nullable: true
+ *                 description: Optionnel pour un dépôt
+ *               montant_fleche:
+ *                 type: integer
+ *                 nullable: true
+ *     responses:
+ *       201:
+ *         description: Virement effectué (dépense + dépôt, allocation optionnelle)
+ *       400:
+ *         description: Champs manquants ou montant invalide
+ *       404:
+ *         description: Compte ou objectif introuvable
+ */
 router.post('/virement-epargne', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -362,6 +576,41 @@ router.post('/virement-epargne', verifierToken, async (req, res, next) => {
 });
 
 // POST /transactions/virement-vers-courant - retrait d'un livret + dépôt automatique sur le compte courant
+/**
+ * @swagger
+ * /transactions/virement-vers-courant:
+ *   post:
+ *     summary: Virement automatisé épargne vers compte courant ("Renflouement", flèchage obligatoire)
+ *     tags: [Transactions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date, montant, compte_epargne_id, compte_courant_id, objectif_id]
+ *             properties:
+ *               date:
+ *                 type: string
+ *               montant:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               compte_epargne_id:
+ *                 type: integer
+ *               compte_courant_id:
+ *                 type: integer
+ *               objectif_id:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Virement effectué (retrait + dépôt, allocation obligatoire)
+ *       400:
+ *         description: Champs manquants ou montant invalide
+ *       404:
+ *         description: Compte ou objectif introuvable
+ */
 router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -480,6 +729,26 @@ router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
 });
 
 // PATCH /transactions/:id/valider-simulation - passe une transaction simulée en réelle
+/**
+ * @swagger
+ * /transactions/{id}/valider-simulation:
+ *   patch:
+ *     summary: Transforme une transaction simulée en réelle
+ *     tags: [Transactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Transaction validée (est_simulee passé à false)
+ *       400:
+ *         description: Déjà réelle
+ *       404:
+ *         description: Transaction introuvable
+ */
 router.patch('/:id/valider-simulation', verifierToken, async (req, res, next) => {
   try {
     const resultatExistant = await pool.query(

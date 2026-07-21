@@ -5,6 +5,16 @@ const verifierToken = require('../middleware/auth');
 const router = express.Router();
 
 // GET /utilisateurs - liste les utilisateurs du même foyer uniquement
+/**
+ * @swagger
+ * /utilisateurs:
+ *   get:
+ *     summary: Liste les utilisateurs du même foyer (ou soi-même seul si pas de foyer)
+ *     tags: [Utilisateurs]
+ *     responses:
+ *       200:
+ *         description: Liste des utilisateurs (id, nom uniquement)
+ */
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const moi = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);

@@ -5,6 +5,16 @@ const verifierToken = require('../middleware/auth');
 const router = express.Router();
 
 // GET /dashboard/soldes - solde réel actuel de chaque compte non archivé
+/**
+ * @swagger
+ * /dashboard/soldes:
+ *   get:
+ *     summary: Solde réel et projeté actuel de chaque compte
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Liste des comptes avec solde_actuel et solde_projete
+ */
 router.get('/soldes', verifierToken, async (req, res, next) => {
   try {
     const resultat = await pool.query(
@@ -38,6 +48,23 @@ router.get('/soldes', verifierToken, async (req, res, next) => {
 });
 
 // GET /dashboard/evolution-comptes-courants?mois=12 - solde de fin de mois, par compte courant
+/**
+ * @swagger
+ * /dashboard/evolution-comptes-courants:
+ *   get:
+ *     summary: Solde de fin de mois sur N mois, par compte courant
+ *     tags: [Dashboard]
+ *     parameters:
+ *       - in: query
+ *         name: mois
+ *         schema:
+ *           type: integer
+ *           default: 12
+ *         description: Nombre de mois d'historique à renvoyer
+ *     responses:
+ *       200:
+ *         description: Points d'évolution par compte courant
+ */
 router.get('/evolution-comptes-courants', verifierToken, async (req, res, next) => {
   try {
     const nombreMois = parseInt(req.query.mois, 10) || 12;
@@ -88,6 +115,36 @@ router.get('/evolution-comptes-courants', verifierToken, async (req, res, next) 
 });
 
 // GET /dashboard/repartition?type=depense&periode=mois&compte_id=X (optionnel)
+/**
+ * @swagger
+ * /dashboard/repartition:
+ *   get:
+ *     summary: Répartition des montants par catégorie parente (pour les camemberts)
+ *     tags: [Dashboard]
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [depense, revenu]
+ *       - in: query
+ *         name: periode
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [mois, annee]
+ *       - in: query
+ *         name: compte_id
+ *         schema:
+ *           type: integer
+ *         description: Optionnel, filtre sur un compte précis
+ *     responses:
+ *       200:
+ *         description: Répartition par catégorie (Non classé exclu)
+ *       400:
+ *         description: Paramètres type/periode invalides
+ */
 router.get('/repartition', verifierToken, async (req, res, next) => {
   try {
     const { type, periode, compte_id } = req.query;
@@ -134,6 +191,16 @@ router.get('/repartition', verifierToken, async (req, res, next) => {
 });
 
 // GET /dashboard/budgets-du-mois - suivi budgétaire consolidé, tous comptes confondus
+/**
+ * @swagger
+ * /dashboard/budgets-du-mois:
+ *   get:
+ *     summary: Suivi budgétaire consolidé, tous comptes confondus, pour le mois en cours
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Détail budget/dépensé/reste par compte et catégorie
+ */
 router.get('/budgets-du-mois', verifierToken, async (req, res, next) => {
   try {
     const maintenant = new Date();

@@ -14,6 +14,16 @@ function clauseAcces(foyerId, alias = 'o') {
 }
 
 // GET /objectifs - liste les objectifs accessibles (miens + communs de mon foyer)
+/**
+ * @swagger
+ * /objectifs:
+ *   get:
+ *     summary: Liste les objectifs accessibles (miens + communs du foyer), avec progression
+ *     tags: [Objectifs]
+ *     responses:
+ *       200:
+ *         description: Liste des objectifs avec montant_actuel calculé
+ */
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
@@ -42,6 +52,32 @@ router.get('/', verifierToken, async (req, res, next) => {
 });
 
 // POST /objectifs
+/**
+ * @swagger
+ * /objectifs:
+ *   post:
+ *     summary: Crée un objectif d'épargne (individuel ou commun au foyer)
+ *     tags: [Objectifs]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nom, montant_cible]
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               montant_cible:
+ *                 type: integer
+ *               est_commun:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Objectif créé
+ *       400:
+ *         description: Champs manquants, ou pas de foyer pour un objectif commun
+ */
 router.post('/', verifierToken, async (req, res, next) => {
   try {
     const { nom, montant_cible, est_commun } = req.body;
@@ -70,6 +106,35 @@ router.post('/', verifierToken, async (req, res, next) => {
 });
 
 // PUT /objectifs/:id
+/**
+ * @swagger
+ * /objectifs/{id}:
+ *   put:
+ *     summary: Modifie un objectif
+ *     tags: [Objectifs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               montant_cible:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Objectif modifié
+ *       404:
+ *         description: Objectif introuvable
+ */
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
     const { nom, montant_cible } = req.body;
@@ -95,6 +160,24 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /objectifs/:id
+/**
+ * @swagger
+ * /objectifs/{id}:
+ *   delete:
+ *     summary: Supprime un objectif
+ *     tags: [Objectifs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimé
+ *       404:
+ *         description: Objectif introuvable
+ */
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
@@ -115,6 +198,38 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
 });
 
 // POST /objectifs/:id/allocations - flécher une transaction vers cet objectif
+/**
+ * @swagger
+ * /objectifs/{id}/allocations:
+ *   post:
+ *     summary: Flèche une transaction vers cet objectif
+ *     tags: [Objectifs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [transaction_id, montant_fleche]
+ *             properties:
+ *               transaction_id:
+ *                 type: integer
+ *               montant_fleche:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Allocation créée
+ *       400:
+ *         description: Compte courant non autorisé pour l'épargne
+ *       404:
+ *         description: Objectif ou transaction introuvable
+ */
 router.post('/:id/allocations', verifierToken, async (req, res, next) => {
   try {
     const { transaction_id, montant_fleche } = req.body;
@@ -161,6 +276,24 @@ router.post('/:id/allocations', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /objectifs/allocations/:id
+/**
+ * @swagger
+ * /objectifs/allocations/{id}:
+ *   delete:
+ *     summary: Retire un flèchage d'allocation
+ *     tags: [Objectifs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Allocation supprimée
+ *       404:
+ *         description: Allocation introuvable
+ */
 router.delete('/allocations/:id', verifierToken, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);

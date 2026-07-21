@@ -13,6 +13,24 @@ async function verifierAccesCompte(compteId, utilisateurId) {
 }
 
 // GET /modeles?compte_id=X - liste les modèles d'un compte
+/**
+ * @swagger
+ * /modeles:
+ *   get:
+ *     summary: Liste les modèles d'un compte, avec indicateur d'utilisation ce mois-ci
+ *     tags: [Modèles]
+ *     parameters:
+ *       - in: query
+ *         name: compte_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Liste des modèles (champ utilise_ce_mois calculé, tolérance ±10%)
+ *       404:
+ *         description: Compte introuvable
+ */
 router.get('/', verifierToken, async (req, res, next) => {
   try {
     const { compte_id } = req.query;
@@ -56,6 +74,50 @@ router.get('/', verifierToken, async (req, res, next) => {
 });
 
 // POST /modeles - création
+/**
+ * @swagger
+ * /modeles:
+ *   post:
+ *     summary: Crée un modèle (classique ou virement épargne automatisé)
+ *     tags: [Modèles]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [compte_id, nom, type_transaction]
+ *             properties:
+ *               compte_id:
+ *                 type: integer
+ *               nom:
+ *                 type: string
+ *               categorie_id:
+ *                 type: integer
+ *                 nullable: true
+ *               montant:
+ *                 type: integer
+ *                 nullable: true
+ *               type_transaction:
+ *                 type: string
+ *                 enum: [depense, revenu]
+ *               moyen_paiement:
+ *                 type: string
+ *                 nullable: true
+ *               est_virement_epargne:
+ *                 type: boolean
+ *               compte_epargne_id:
+ *                 type: integer
+ *                 nullable: true
+ *               objectif_id:
+ *                 type: integer
+ *                 nullable: true
+ *     responses:
+ *       201:
+ *         description: Modèle créé
+ *       400:
+ *         description: Champs requis manquants
+ */
 router.post('/', verifierToken, async (req, res, next) => {
   try {
     const {
@@ -114,6 +176,30 @@ router.post('/', verifierToken, async (req, res, next) => {
 });
 
 // POST /modeles/virement-compte-commun - crée ou remplace le modèle "Virement vers compte commun"
+/**
+ * @swagger
+ * /modeles/virement-compte-commun:
+ *   post:
+ *     summary: Crée ou remplace le modèle "Virement vers compte commun" à partir d'une répartition
+ *     tags: [Modèles]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [compte_id, montant]
+ *             properties:
+ *               compte_id:
+ *                 type: integer
+ *               montant:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Modèle créé ou mis à jour
+ *       404:
+ *         description: Compte introuvable
+ */
 router.post('/virement-compte-commun', verifierToken, async (req, res, next) => {
   try {
     const { compte_id, montant } = req.body;
@@ -175,6 +261,52 @@ router.post('/virement-compte-commun', verifierToken, async (req, res, next) => 
 });
 
 // PUT /modeles/:id - modification
+/**
+ * @swagger
+ * /modeles/{id}:
+ *   put:
+ *     summary: Modifie un modèle existant
+ *     tags: [Modèles]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nom:
+ *                 type: string
+ *               categorie_id:
+ *                 type: integer
+ *                 nullable: true
+ *               montant:
+ *                 type: integer
+ *                 nullable: true
+ *               type_transaction:
+ *                 type: string
+ *               moyen_paiement:
+ *                 type: string
+ *                 nullable: true
+ *               est_virement_epargne:
+ *                 type: boolean
+ *               compte_epargne_id:
+ *                 type: integer
+ *                 nullable: true
+ *               objectif_id:
+ *                 type: integer
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Modèle modifié
+ *       404:
+ *         description: Modèle introuvable
+ */
 router.put('/:id', verifierToken, async (req, res, next) => {
   try {
     const {
@@ -210,6 +342,24 @@ router.put('/:id', verifierToken, async (req, res, next) => {
 });
 
 // DELETE /modeles/:id
+/**
+ * @swagger
+ * /modeles/{id}:
+ *   delete:
+ *     summary: Supprime un modèle
+ *     tags: [Modèles]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Supprimé
+ *       404:
+ *         description: Modèle introuvable
+ */
 router.delete('/:id', verifierToken, async (req, res, next) => {
   try {
     const existant = await pool.query(
