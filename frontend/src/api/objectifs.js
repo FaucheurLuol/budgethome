@@ -36,3 +36,32 @@ export async function creerAllocationApi(objectifId, transactionId, montantFlech
   if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du flèchage vers l\'objectif.');
   return donnees;
 }
+
+export async function listerObjectifsArchivesApi() {
+  const reponse = await fetchAuthentifie('/objectifs/archives');
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la récupération des objectifs archivés.');
+  return donnees;
+}
+
+export async function archiverObjectifApi(id) {
+  const reponse = await fetchAuthentifie(`/objectifs/${id}/archiver`, { method: 'PATCH' });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de l\'archivage.');
+  return donnees;
+}
+
+export async function desarchiverObjectifApi(id) {
+  const reponse = await fetchAuthentifie(`/objectifs/${id}/desarchiver`, { method: 'PATCH' });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors du désarchivage.');
+  return donnees;
+}
+
+export async function supprimerObjectifDefinitifApi(id) {
+  const reponse = await fetchAuthentifie(`/objectifs/${id}/definitif`, { method: 'DELETE' });
+  if (!reponse.ok) {
+    const donnees = await reponse.json();
+    throw new Error(donnees.erreur || 'Erreur lors de la suppression définitive.');
+  }
+}

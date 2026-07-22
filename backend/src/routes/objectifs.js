@@ -39,7 +39,8 @@ router.get('/', verifierToken, async (req, res, next) => {
        FROM objectifs_epargne o
        LEFT JOIN allocations_epargne a ON a.objectif_id = o.id
        LEFT JOIN transactions t ON t.id = a.transaction_id
-       WHERE o.foyer_id = $1 OR (o.utilisateur_id = $2 AND o.foyer_id IS NULL)
+       WHERE (o.foyer_id = $1 OR (o.utilisateur_id = $2 AND o.foyer_id IS NULL))
+         AND o.est_archive = FALSE
        GROUP BY o.id
        ORDER BY o.nom`,
       [foyerId, req.utilisateur.id]
@@ -313,6 +314,163 @@ router.delete('/allocations/:id', verifierToken, async (req, res, next) => {
     res.status(204).send();
   } catch (erreur) {
     next(erreur);
+  }
+});
+
+/**
+ * @swagger
+ * /objectifs/archives:
+ *   get:
+ *     summary: Liste les objectifs archivés (accessibles + communs du foyer)
+ *     tags: [Objectifs]
+ *     responses:
+ *       200:
+ *         description: Liste des objectifs archivés avec progression
+ */
+router.get('/archives', verifierToken, async (req, res, next) => {
+  try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
+    const resultat = await pool.query(
+      `SELECT o.*, COALESCE(SUM(
+         CASE WHEN t.type_transaction = 'revenu' THEN a.montant_fleche
+              WHEN t.type_transaction = 'depense' THEN -a.montant_fleche
+         END
+       ), 0) AS montant_actuel
+       FROM objectifs_epargne o
+       LEFT JOIN allocations_epargne a ON a.objectif_id = o.id
+       LEFT JOIN transactions t ON t.id = a.transaction_id
+       WHERE (o.foyer_id = $1 OR (o.utilisateur_id = $2 AND o.foyer_id IS NULL))
+         AND o.est_archive = TRUE
+       GROUP BY o.id
+       ORDER BY o.nom`,
+      [foyerId, req.utilisateur.id]
+    );
+
+    res.json(resultat.rows);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+/**
+ * @swagger
+ * /objectifs/{id}/archiver:
+ *   patch:
+ *     summary: Archive un objectif (atteint ou abandonné), conserve l'historique
+ *     tags: [Objectifs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Objectif archivé
+ *       404:
+ *         description: Objectif introuvable
+ */
+router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
+  try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
+    const resultat = await pool.query(
+      `UPDATE objectifs_epargne SET est_archive = TRUE
+       WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))
+       RETURNING *`,
+      [req.params.id, foyerId, req.utilisateur.id]
+    );
+
+    if (resultat.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Objectif introuvable.' });
+    }
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+/**
+ * @swagger
+ * /objectifs/{id}/desarchiver:
+ *   patch:
+ *     summary: Désarchive un objectif
+ *     tags: [Objectifs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Objectif désarchivé
+ *       404:
+ *         description: Objectif introuvable
+ */
+router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
+  try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
+    const resultat = await pool.query(
+      `UPDATE objectifs_epargne SET est_archive = FALSE
+       WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))
+       RETURNING *`,
+      [req.params.id, foyerId, req.utilisateur.id]
+    );
+
+    if (resultat.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Objectif introuvable.' });
+    }
+    res.json(resultat.rows[0]);
+  } catch (erreur) {
+    next(erreur);
+  }
+});
+
+/**
+ * @swagger
+ * /objectifs/{id}/definitif:
+ *   delete:
+ *     summary: Supprime définitivement un objectif et ses allocations
+ *     tags: [Objectifs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Objectif et allocations supprimés
+ *       404:
+ *         description: Objectif introuvable
+ */
+router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const foyerId = await obtenirFoyerId(req.utilisateur.id);
+
+    const verifAcces = await client.query(
+      `SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))`,
+      [req.params.id, foyerId, req.utilisateur.id]
+    );
+    if (verifAcces.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Objectif introuvable.' });
+    }
+
+    await client.query('BEGIN');
+    await client.query('DELETE FROM allocations_epargne WHERE objectif_id = $1', [req.params.id]);
+    await client.query('DELETE FROM objectifs_epargne WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
+
+    res.status(204).send();
+  } catch (erreur) {
+    await client.query('ROLLBACK');
+    next(erreur);
+  } finally {
+    client.release();
   }
 });
 
