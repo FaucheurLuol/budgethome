@@ -45,7 +45,7 @@ function Sidebar({ ouverte, fermer }) {
         <NavLink to="/comptes" onClick={fermer} className="sidebar-lien">
           Comptes
         </NavLink>
-        <NavLink to="/comptes-archives" onClick={fermer} className="sidebar-lien">
+        <NavLink to="/archives" onClick={fermer} className="sidebar-lien">
           Archives
         </NavLink>
       </nav>

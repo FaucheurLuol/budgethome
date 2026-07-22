@@ -12,7 +12,7 @@ import Budgets from './pages/Budgets';
 import Objectifs from './pages/Objectifs';
 import Modeles from './pages/Modeles';
 import Repartition from './pages/Repartition';
-import ComptesArchives from './pages/ComptesArchives';
+import Archives from './pages/ComptesArchives';
 import Profil from './pages/Profil';
 
 function App() {
@@ -87,10 +87,10 @@ function App() {
           }
         />
         <Route
-          path="/comptes-archives"
+          path="/archives"
           element={
             <RouteProtegee>
-              <ComptesArchives />
+              <Archives />
             </RouteProtegee>
           }
         />

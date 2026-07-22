@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { listerObjectifsApi, creerObjectifApi, supprimerObjectifApi } from '../api/objectifs';
+import { 
+  listerObjectifsApi, creerObjectifApi, supprimerObjectifApi,
+  archiverObjectifApi, 
+} from '../api/objectifs';
 import '../style/app.css';
 import '../style/tableur.css';
 
@@ -57,6 +60,15 @@ function Objectifs() {
     }
   }
 
+  async function gererArchivage(id) {
+    try {
+      await archiverObjectifApi(id);
+      chargerObjectifs();
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -74,7 +86,10 @@ function Objectifs() {
             <li key={obj.id} className="carte-objectif">
               <div className="objectif-entete">
                 <strong>{obj.nom}</strong>
-                <button className="bouton-discret" onClick={() => gererSuppression(obj.id)}>Supprimer</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="bouton-discret" onClick={() => gererArchivage(obj.id)}>Archiver</button>
+                  <button className="bouton-discret" onClick={() => gererSuppression(obj.id)}>Supprimer</button>
+                </div>
               </div>
               <div className="objectif-progression">
                 <div className="objectif-barre-fond">
