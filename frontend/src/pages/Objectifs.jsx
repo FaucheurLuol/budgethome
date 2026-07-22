@@ -133,13 +133,27 @@ function Objectifs() {
 
       <h2>{objectifEnEdition ? 'Modifier l\'objectif' : 'Créer un objectif'}</h2>
       <form className="formulaire-carte" onSubmit={gererSoumission}>
-        {/* champs nom, montantCible inchangés */}
+        <label htmlFor="nom">Nom :</label>
+        <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
+
+        <label htmlFor="montant_cible">Montant cible (€) :</label>
+        <input
+          id="montant_cible"
+          type="number"
+          step="0.01"
+          min="0.01"
+          value={montantCible}
+          onChange={(e) => setMontantCible(e.target.value)}
+          required
+        />
+
         {!objectifEnEdition && (
           <label className="champ-checkbox">
             <input type="checkbox" checked={estCommun} onChange={(e) => setEstCommun(e.target.checked)} />
             Objectif commun du foyer
           </label>
         )}
+
         <button className="btn-primary" type="submit">
           {objectifEnEdition ? 'Enregistrer' : 'Créer'}
         </button>
