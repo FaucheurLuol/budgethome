@@ -564,7 +564,7 @@ function Transactions() {
                 </select>
               </td>
               <td>
-                {!nouvelleLigne.est_virement_epargne && !nouvelleLigne.est_virement_vers_courant && (
+                {!nouvelleLigne.est_virement_epargne && !nouvelleLigne.est_virement_vers_courant && !nouvelleLigne.est_transfert_epargne && (
                   <select
                     value={nouvelleLigne.categorie_id}
                     onChange={(e) => majNouvelleLigne('categorie_id', e.target.value)}
