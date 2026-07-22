@@ -200,10 +200,6 @@ function Transactions() {
         setErreur('Montant et catégorie sont requis.');
         return;
       }
-      if (!nouvelleLigne.montant || (!nouvelleLigne.categorie_id && !nouvelleLigne.est_virement_epargne && !nouvelleLigne.est_virement_vers_courant)) {
-        setErreur('Montant et catégorie sont requis.');
-        return;
-      }
 
       if (nouvelleLigne.est_simulee) {
         if (!nouvelleLigne.categorie_id && !nouvelleLigne.est_virement_epargne) {
@@ -252,43 +248,32 @@ function Transactions() {
           montant_fleche: nouvelleLigne.objectif_id ? montantCentimes : null,
         });
       } else {
-        const estRetraitEpargne = estCompteEpargne && nouvelleLigne.type_transaction === 'depense';
+        const estDepenseEpargne = estCompteEpargne && nouvelleLigne.type_transaction === 'depense';
 
-        if (estRetraitEpargne) {
-          const flechageValide = nouvelleLigne.est_virement_vers_courant
-            ? true
-            : (nouvelleLigne.objectif_id && nouvelleLigne.montant_fleche);
-
-          if (!nouvelleLigne.objectif_id || !flechageValide) {
-            setErreur('Un retrait depuis un compte d\'épargne doit obligatoirement être fléché vers un objectif.');
+        if (estDepenseEpargne) {
+          if (!nouvelleLigne.est_virement_vers_courant) {
+            setErreur('Une dépense depuis un compte d\'épargne doit être dirigée vers le compte courant ou un autre livret.');
             return;
           }
 
-          if (nouvelleLigne.est_virement_vers_courant) {
-            if (!nouvelleLigne.compte_courant_destination_id) {
-              setErreur('Sélectionnez le compte courant de destination.');
-              return;
-            }
-            await creerVirementVersCourantApi({
-              date: nouvelleLigne.date,
-              montant: montantCentimes,
-              description: nouvelleLigne.description || null,
-              compte_epargne_id: Number(compteSelectionne),
-              compte_courant_id: Number(nouvelleLigne.compte_courant_destination_id),
-              objectif_id: Number(nouvelleLigne.objectif_id),
-            });
-          } else {
-            await creerRetraitEpargneApi({
-              date: nouvelleLigne.date,
-              montant: montantCentimes,
-              description: nouvelleLigne.description || null,
-              moyen_paiement: 'Virement',
-              categorie_id: Number(nouvelleLigne.categorie_id),
-              compte_id: Number(compteSelectionne),
-              objectif_id: Number(nouvelleLigne.objectif_id),
-              montant_fleche: Math.round(parseFloat(nouvelleLigne.montant_fleche) * 100),
-            });
+          if (!nouvelleLigne.objectif_id) {
+            setErreur('Un retrait vers le compte courant doit obligatoirement être fléché vers un objectif.');
+            return;
           }
+
+          if (!nouvelleLigne.compte_courant_destination_id) {
+            setErreur('Sélectionnez le compte courant de destination.');
+            return;
+          }
+
+          await creerVirementVersCourantApi({
+            date: nouvelleLigne.date,
+            montant: montantCentimes,
+            description: nouvelleLigne.description || null,
+            compte_epargne_id: Number(compteSelectionne),
+            compte_courant_id: Number(nouvelleLigne.compte_courant_destination_id),
+            objectif_id: Number(nouvelleLigne.objectif_id),
+          });
         } else {
           const nouvelleTransaction = await creerTransactionApi({
             date: nouvelleLigne.date,
@@ -689,7 +674,7 @@ function Transactions() {
                     </select>
                   )}
 
-                  {!nouvelleLigne.est_transfert_epargne && (
+                  {(nouvelleLigne.type_transaction === 'revenu' || nouvelleLigne.est_virement_vers_courant) && (
                     <>
                       <select
                         value={nouvelleLigne.objectif_id}
@@ -703,7 +688,7 @@ function Transactions() {
                         }}
                       >
                         <option value="">
-                          {nouvelleLigne.type_transaction === 'depense' ? 'Obligatoire...' : 'Optionnel...'}
+                          {nouvelleLigne.est_virement_vers_courant ? 'Obligatoire...' : 'Optionnel...'}
                         </option>
                         {objectifs.map((obj) => (
                           <option key={obj.id} value={obj.id}>{obj.nom}</option>
