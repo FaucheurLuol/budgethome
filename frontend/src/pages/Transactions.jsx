@@ -494,14 +494,14 @@ function Transactions() {
               <th style={{ width: '9%' }}>Date</th>
               <th style={{ width: '8%' }}>Type</th>
               <th style={{ width: '14%' }}>Catégorie</th>
-              <th style={{ width: '15%' }}>Description</th>
+              <th style={{ width: '14%' }}>Description</th>
               {!estCompteEpargne && <th style={{ width: '8%' }}>Moyen</th>}
-              {!estCompteEpargne && <th style={{ width: '11%' }}>Virement</th>}
-              {estCompteEpargne && <th style={{ width: '19%' }}>Objectif</th>}
+              {!estCompteEpargne && <th style={{ width: '12%' }}>Virement</th>}
+              {estCompteEpargne && <th style={{ width: '20%' }}>Objectif</th>}
               <th style={{ width: '10%' }}>Montant</th>
-              <th style={{ width: '10%' }}>Solde</th>
-              <th style={{ width: '7%' }}></th>
-              {!estCompteEpargne && <th style={{ width: '8%' }}>Simuler</th>}
+              <th style={{ width: '9%' }}>Solde</th>
+              <th style={{ width: '9%' }}></th>
+              {!estCompteEpargne && <th style={{ width: '7%' }}>Simuler</th>}
             </tr>
           </thead>
           <tbody>
