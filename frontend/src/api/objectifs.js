@@ -65,3 +65,14 @@ export async function supprimerObjectifDefinitifApi(id) {
     throw new Error(donnees.erreur || 'Erreur lors de la suppression définitive.');
   }
 }
+
+export async function modifierObjectifApi(id, objectif) {
+  const reponse = await fetchAuthentifie(`/objectifs/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(objectif),
+  });
+  const donnees = await reponse.json();
+  if (!reponse.ok) throw new Error(donnees.erreur || 'Erreur lors de la modification de l\'objectif.');
+  return donnees;
+}

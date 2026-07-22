@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   listerObjectifsApi, creerObjectifApi, supprimerObjectifApi,
-  archiverObjectifApi, 
+  archiverObjectifApi, modifierObjectifApi
 } from '../api/objectifs';
 import '../style/app.css';
 import '../style/tableur.css';
@@ -13,6 +13,7 @@ function Objectifs() {
   const [erreur, setErreur] = useState('');
   const [nom, setNom] = useState('');
   const [montantCible, setMontantCible] = useState('');
+  const [objectifEnEdition, setObjectifEnEdition] = useState(null);
 
   useEffect(() => {
     chargerObjectifs();
@@ -37,13 +38,19 @@ function Objectifs() {
         setErreur('Nom et montant cible sont requis.');
         return;
       }
-      await creerObjectifApi({
+
+      const donneesObjectif = {
         nom,
         montant_cible: Math.round(parseFloat(montantCible) * 100),
-        est_commun: estCommun,
-      });
-      setNom('');
-      setMontantCible('');
+      };
+
+      if (objectifEnEdition) {
+        await modifierObjectifApi(objectifEnEdition, donneesObjectif);
+      } else {
+        await creerObjectifApi({ ...donneesObjectif, est_commun: estCommun });
+      }
+
+      gererAnnulerEdition();
       setEstCommun(false);
       chargerObjectifs();
     } catch (err) {
@@ -69,6 +76,18 @@ function Objectifs() {
     }
   }
 
+  function gererDebutEdition(objectif) {
+    setObjectifEnEdition(objectif.id);
+    setNom(objectif.nom);
+    setMontantCible((objectif.montant_cible / 100).toFixed(2));
+  }
+
+  function gererAnnulerEdition() {
+    setObjectifEnEdition(null);
+    setNom('');
+    setMontantCible('');
+  }
+
   if (chargement) return <p>Chargement...</p>;
 
   return (
@@ -87,6 +106,7 @@ function Objectifs() {
               <div className="objectif-entete">
                 <strong>{obj.nom}</strong>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="bouton-discret" onClick={() => gererDebutEdition(obj)}>Modifier</button>
                   <button className="bouton-discret" onClick={() => gererArchivage(obj.id)}>Archiver</button>
                   <button className="bouton-discret" onClick={() => gererSuppression(obj.id)}>Supprimer</button>
                 </div>
@@ -111,28 +131,23 @@ function Objectifs() {
         })}
       </ul>
 
-      <h2>Créer un objectif</h2>
+      <h2>{objectifEnEdition ? 'Modifier l\'objectif' : 'Créer un objectif'}</h2>
       <form className="formulaire-carte" onSubmit={gererSoumission}>
-        <label htmlFor="nom">Nom :</label>
-        <input id="nom" type="text" value={nom} onChange={(e) => setNom(e.target.value)} required />
-
-        <label htmlFor="montant_cible">Montant cible (€) :</label>
-        <input
-          id="montant_cible"
-          type="number"
-          step="0.01"
-          min="0.01"
-          value={montantCible}
-          onChange={(e) => setMontantCible(e.target.value)}
-          required
-        />
-
-        <label className="champ-checkbox">
-          <input type="checkbox" checked={estCommun} onChange={(e) => setEstCommun(e.target.checked)} />
-          Objectif commun du foyer
-        </label>
-
-        <button className="btn-primary" type="submit">Créer</button>
+        {/* champs nom, montantCible inchangés */}
+        {!objectifEnEdition && (
+          <label className="champ-checkbox">
+            <input type="checkbox" checked={estCommun} onChange={(e) => setEstCommun(e.target.checked)} />
+            Objectif commun du foyer
+          </label>
+        )}
+        <button className="btn-primary" type="submit">
+          {objectifEnEdition ? 'Enregistrer' : 'Créer'}
+        </button>
+        {objectifEnEdition && (
+          <button type="button" className="bouton-discret" onClick={gererAnnulerEdition}>
+            Annuler
+          </button>
+        )}
       </form>
     </div>
   );
