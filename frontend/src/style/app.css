@@ -351,8 +351,8 @@
 
 /* Tableur */
 .page-tableur {
-  max-width: 1800px;
-  padding: 20px 0px;
+  width: 100%;
+  padding: 20px 24px;
 }
 
 .page-tableur h1 {

@@ -396,3 +396,39 @@
   background-color: rgba(107, 143, 135, 0.15);
   color: var(--color-accent-soft);
 }
+
+@media (max-width: 1600px) {
+  .tableur {
+    font-size: 0.82rem;
+  }
+
+  .tableur th {
+    font-size: 0.66rem;
+    padding: 12px 8px;
+  }
+
+  .tableur td {
+    padding: 9px 8px;
+  }
+}
+
+@media (max-width: 1366px) {
+  .tableur {
+    font-size: 0.74rem;
+  }
+
+  .tableur th {
+    font-size: 0.6rem;
+    padding: 10px 6px;
+  }
+
+  .tableur td {
+    padding: 7px 6px;
+  }
+
+  .tableur input,
+  .tableur select {
+    font-size: 0.72rem;
+    padding: 6px 8px;
+  }
+}

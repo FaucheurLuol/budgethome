@@ -491,17 +491,17 @@ function Transactions() {
         <table className="tableur">
           <thead>
             <tr>
-              <th style={{ width: '10%' }}>Date</th>
-              <th style={{ width: '9%' }}>Type</th>
-              <th style={{ width: '15%' }}>Catégorie</th>
-              <th style={{ width: '18%' }}>Description</th>
-              {!estCompteEpargne && <th style={{ width: '9%' }}>Moyen</th>}
-              {!estCompteEpargne && <th style={{ width: '13%' }}>Virement</th>}
-              {estCompteEpargne && <th style={{ width: '16%' }}>Objectif</th>}
+              <th style={{ width: '9%' }}>Date</th>
+              <th style={{ width: '8%' }}>Type</th>
+              <th style={{ width: '14%' }}>Catégorie</th>
+              <th style={{ width: '15%' }}>Description</th>
+              {!estCompteEpargne && <th style={{ width: '8%' }}>Moyen</th>}
+              {!estCompteEpargne && <th style={{ width: '11%' }}>Virement</th>}
+              {estCompteEpargne && <th style={{ width: '19%' }}>Objectif</th>}
               <th style={{ width: '10%' }}>Montant</th>
               <th style={{ width: '10%' }}>Solde</th>
               <th style={{ width: '7%' }}></th>
-              {!estCompteEpargne && <th style={{ width: '6%' }}>Simuler</th>}
+              {!estCompteEpargne && <th style={{ width: '8%' }}>Simuler</th>}
             </tr>
           </thead>
           <tbody>

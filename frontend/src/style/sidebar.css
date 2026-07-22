@@ -102,6 +102,16 @@
   color: var(--color-accent);
 }
 
+@media (max-width: 1366px) {
+  .sidebar {
+    width: 170px;
+  }
+
+  .app-content {
+    padding: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
