@@ -728,6 +728,111 @@ router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /transactions/virement-epargne-vers-epargne:
+ *   post:
+ *     summary: Virement automatisé entre deux comptes d'épargne (sans flèchage, ne modifie pas la progression des objectifs)
+ *     tags: [Transactions]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date, montant, compte_source_id, compte_dest_id]
+ *             properties:
+ *               date:
+ *                 type: string
+ *               montant:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *                 nullable: true
+ *               compte_source_id:
+ *                 type: integer
+ *               compte_dest_id:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Transfert effectué (retrait + dépôt)
+ *       400:
+ *         description: Comptes identiques, champs manquants, ou l'un des deux n'est pas un compte d'épargne
+ *       404:
+ *         description: Compte source ou destination introuvable
+ */
+router.post('/virement-epargne-vers-epargne', verifierToken, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const { date, montant, description, compte_source_id, compte_dest_id } = req.body;
+
+    if (!date || !montant || !compte_source_id || !compte_dest_id) {
+      return res.status(400).json({ erreur: 'Champs obligatoires manquants.' });
+    }
+
+    if (compte_source_id === compte_dest_id) {
+      return res.status(400).json({ erreur: 'Les comptes source et destination doivent être différents.' });
+    }
+
+    const verifCompte = async (compteId) => {
+      const resultat = await client.query(
+        `SELECT c.type_compte FROM comptes c
+         JOIN compte_utilisateurs cu ON cu.compte_id = c.id
+         WHERE c.id = $1 AND cu.utilisateur_id = $2`,
+        [compteId, req.utilisateur.id]
+      );
+      return resultat.rows[0];
+    };
+
+    const source = await verifCompte(compte_source_id);
+    const dest = await verifCompte(compte_dest_id);
+
+    if (!source) return res.status(404).json({ erreur: 'Compte source introuvable.' });
+    if (!dest) return res.status(404).json({ erreur: 'Compte destination introuvable.' });
+    if (source.type_compte === 'Compte courant' || dest.type_compte === 'Compte courant') {
+      return res.status(400).json({ erreur: 'Les deux comptes doivent être des comptes d\'épargne.' });
+    }
+
+    async function trouverOuCreerCategorie(typeCategorie) {
+      const existante = await client.query(
+        `SELECT id FROM categories WHERE nom = 'Transfert épargne' AND type_categorie = $1 AND utilisateur_id = $2`,
+        [typeCategorie, req.utilisateur.id]
+      );
+      if (existante.rows.length > 0) return existante.rows[0].id;
+      const creee = await client.query(
+        `INSERT INTO categories (nom, utilisateur_id, type_categorie) VALUES ('Transfert épargne', $1, $2) RETURNING id`,
+        [req.utilisateur.id, typeCategorie]
+      );
+      return creee.rows[0].id;
+    }
+
+    const categorieDepenseId = await trouverOuCreerCategorie('depense');
+    const categorieRevenuId = await trouverOuCreerCategorie('revenu');
+
+    await client.query('BEGIN');
+
+    const retrait = await client.query(
+      `INSERT INTO transactions (date, montant, description, moyen_paiement, categorie_id, compte_id, type_transaction)
+       VALUES ($1, $2, $3, 'Virement', $4, $5, 'depense') RETURNING *`,
+      [date, montant, description || 'Transfert vers autre épargne', categorieDepenseId, compte_source_id]
+    );
+
+    const depot = await client.query(
+      `INSERT INTO transactions (date, montant, description, moyen_paiement, categorie_id, compte_id, type_transaction)
+       VALUES ($1, $2, $3, 'Virement', $4, $5, 'revenu') RETURNING *`,
+      [date, montant, description || 'Transfert depuis autre épargne', categorieRevenuId, compte_dest_id]
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json({ retrait: retrait.rows[0], depot: depot.rows[0] });
+  } catch (erreur) {
+    await client.query('ROLLBACK');
+    next(erreur);
+  } finally {
+    client.release();
+  }
+});
+
 // PATCH /transactions/:id/valider-simulation - passe une transaction simulée en réelle
 /**
  * @swagger
