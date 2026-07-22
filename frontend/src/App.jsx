@@ -12,7 +12,7 @@ import Budgets from './pages/Budgets';
 import Objectifs from './pages/Objectifs';
 import Modeles from './pages/Modeles';
 import Repartition from './pages/Repartition';
-import Archives from './pages/ComptesArchives';
+import Archives from './pages/Archives';
 import Profil from './pages/Profil';
 
 function App() {
