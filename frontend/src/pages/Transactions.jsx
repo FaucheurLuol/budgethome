@@ -4,8 +4,8 @@ import { listerCategoriesApi, garantirCategorieEpargneApi } from '../api/categor
 import { listerObjectifsApi, creerAllocationApi } from '../api/objectifs';
 import {
   listerTransactionsApi, creerTransactionApi, supprimerTransactionApi,
-  creerRetraitEpargneApi, creerVirementEpargneApi, creerVirementVersCourantApi,
-  validerSimulationApi, modifierTransactionApi, creerVirementEpargneVersEpargneApi
+  creerVirementEpargneApi, creerVirementVersCourantApi, validerSimulationApi, 
+  modifierTransactionApi, creerVirementEpargneVersEpargneApi
 } from '../api/transactions';
 import { aplatirPourSelect } from '../api/organiserCategories';
 import { listerModelesApi } from '../api/modeles';
