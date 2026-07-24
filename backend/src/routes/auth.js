@@ -18,9 +18,6 @@ function poserCookieToken(res, token) {
   });
 }
 
-const { body } = require('express-validator');
-const gererErreursValidation = require('../middleware/validation');
-
 const validationInscription = [
   body('nom')
     .trim()
