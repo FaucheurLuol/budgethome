@@ -1,4 +1,4 @@
-const { calculerRepartition } = require('./repartitionCompteCommun');
+const { calculerRepartition } = require('../services/repartitionCompteCommun');
 
 describe('calculerRepartition', () => {
   test('répartit au prorata simple des revenus', () => {
