@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const limiteurAuth = require('../middleware/limiteurAuth');
 const verifierToken = require('../middleware/auth');
+const { body, param } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 

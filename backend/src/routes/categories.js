@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { body, param } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -8,6 +10,17 @@ async function obtenirFoyerId(utilisateurId) {
   const resultat = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [utilisateurId]);
   return resultat.rows[0].foyer_id;
 }
+
+const validationIdParam = [
+  param('id').isInt().withMessage('Identifiant invalide.'),
+];
+
+const validationCategorie = [
+  body('nom').trim().notEmpty().withMessage('Le nom est requis.'),
+  body('type_categorie').isIn(['depense', 'revenu']).withMessage('Type de catégorie invalide.'),
+  body('parent_id').optional({ nullable: true }).isInt().withMessage('Identifiant de catégorie parente invalide.'),
+  body('est_recurrente').optional().isBoolean().withMessage('est_recurrente doit être un booléen.'),
+];
 
 // GET /categories - partagées par foyer, ou propres à moi si pas de foyer
 /**
@@ -76,14 +89,9 @@ router.get('/', verifierToken, async (req, res, next) => {
  *       400:
  *         description: Nom/type manquant, ou catégorie parente introuvable
  */
-router.post('/', verifierToken, async (req, res, next) => {
+router.post('/', verifierToken, validationCategorie, gererErreursValidation, async (req, res, next) => {
   try {
     const { nom, parent_id, type_categorie, est_recurrente } = req.body;
-
-    if (!nom || !type_categorie) {
-      return res.status(400).json({ erreur: 'Le nom et le type de catégorie sont requis.' });
-    }
-
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
     if (parent_id) {
@@ -144,7 +152,7 @@ router.post('/', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Catégorie introuvable
  */
-router.put('/:id', verifierToken, async (req, res, next) => {
+router.put('/:id', verifierToken, [...validationIdParam, ...validationCategorie], gererErreursValidation, async (req, res, next) => {
   try {
     const { nom, parent_id, type_categorie, est_recurrente } = req.body;
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
