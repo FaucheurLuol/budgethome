@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { body, param, query } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -11,6 +13,26 @@ async function verifierAccesCompte(compteId, utilisateurId) {
   );
   return resultat.rows.length > 0;
 }
+
+const validationIdParam = [
+  param('id').isInt().withMessage('Identifiant invalide.'),
+];
+
+const validationModele = [
+  body('compte_id').isInt().withMessage('compte_id est requis.'),
+  body('nom').trim().notEmpty().withMessage('Le nom est requis.'),
+  body('type_transaction').isIn(['depense', 'revenu']).withMessage('type_transaction invalide.'),
+  body('categorie_id').optional({ nullable: true }).isInt().withMessage('categorie_id invalide.'),
+  body('montant').optional({ nullable: true }).isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('est_virement_epargne').optional().isBoolean().withMessage('est_virement_epargne doit être un booléen.'),
+  body('compte_epargne_id').optional({ nullable: true }).isInt().withMessage('compte_epargne_id invalide.'),
+  body('objectif_id').optional({ nullable: true }).isInt().withMessage('objectif_id invalide.'),
+];
+
+const validationVirementCompteCommun = [
+  body('compte_id').isInt().withMessage('compte_id est requis.'),
+  body('montant').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+];
 
 // GET /modeles?compte_id=X - liste les modèles d'un compte
 /**
@@ -31,13 +53,9 @@ async function verifierAccesCompte(compteId, utilisateurId) {
  *       404:
  *         description: Compte introuvable
  */
-router.get('/', verifierToken, async (req, res, next) => {
+router.get('/', verifierToken, [query('compte_id').isInt().withMessage('compte_id doit être un identifiant valide.')], gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id } = req.query;
-
-    if (!compte_id) {
-      return res.status(400).json({ erreur: 'Le paramètre compte_id est requis.' });
-    }
 
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
@@ -118,16 +136,13 @@ router.get('/', verifierToken, async (req, res, next) => {
  *       400:
  *         description: Champs requis manquants
  */
-router.post('/', verifierToken, async (req, res, next) => {
+js
+router.post('/', verifierToken, validationModele, gererErreursValidation, async (req, res, next) => {
   try {
     const {
       compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement,
       est_virement_epargne, compte_epargne_id, objectif_id
     } = req.body;
-
-    if (!compte_id || !nom || !type_transaction) {
-      return res.status(400).json({ erreur: 'Compte, nom et type sont requis.' });
-    }
 
     if (!est_virement_epargne && !categorie_id) {
       return res.status(400).json({ erreur: 'Une catégorie est requise pour un modèle classique.' });
@@ -200,13 +215,9 @@ router.post('/', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.post('/virement-compte-commun', verifierToken, async (req, res, next) => {
+router.post('/virement-compte-commun', verifierToken, validationVirementCompteCommun, gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, montant } = req.body;
-
-    if (!compte_id || montant === undefined) {
-      return res.status(400).json({ erreur: 'compte_id et montant sont requis.' });
-    }
 
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
@@ -307,7 +318,7 @@ router.post('/virement-compte-commun', verifierToken, async (req, res, next) => 
  *       404:
  *         description: Modèle introuvable
  */
-router.put('/:id', verifierToken, async (req, res, next) => {
+router.put('/:id', verifierToken, [...validationIdParam, ...validationModele], gererErreursValidation, async (req, res, next) => {
   try {
     const {
       nom, categorie_id, montant, type_transaction, moyen_paiement,
@@ -360,7 +371,7 @@ router.put('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Modèle introuvable
  */
-router.delete('/:id', verifierToken, async (req, res, next) => {
+router.delete('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const existant = await pool.query(
       'SELECT 1 FROM modeles_transactions WHERE id = $1 AND utilisateur_id = $2',

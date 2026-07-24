@@ -246,10 +246,6 @@ router.get('/mensuel', verifierToken, validationRequeteCompteMois, gererErreursV
   try {
     const { compte_id, mois } = req.query;
 
-    if (!compte_id || !mois) {
-      return res.status(400).json({ erreur: 'Les paramètres compte_id et mois sont requis.' });
-    }
-
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
@@ -298,10 +294,6 @@ router.post('/mensuel/generer', verifierToken, [
 ], gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.body;
-
-    if (!compte_id || !mois) {
-      return res.status(400).json({ erreur: 'compte_id et mois sont requis.' });
-    }
 
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
@@ -352,10 +344,6 @@ router.post('/mensuel/generer', verifierToken, [
 router.get('/mensuel/suivi', verifierToken, validationRequeteCompteMois, gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.query;
-
-    if (!compte_id || !mois) {
-      return res.status(400).json({ erreur: 'Les paramètres compte_id et mois sont requis.' });
-    }
 
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
