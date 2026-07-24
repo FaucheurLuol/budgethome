@@ -136,7 +136,6 @@ router.get('/', verifierToken, [query('compte_id').isInt().withMessage('compte_i
  *       400:
  *         description: Champs requis manquants
  */
-js
 router.post('/', verifierToken, validationModele, gererErreursValidation, async (req, res, next) => {
   try {
     const {
