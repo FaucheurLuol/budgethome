@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { body, param, query } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -11,6 +13,65 @@ async function verifierAccesCompte(compteId, utilisateurId) {
   );
   return resultat.rows.length > 0;
 }
+
+const validationIdParam = [
+  param('id').isInt().withMessage('Identifiant invalide.'),
+];
+
+const validationListe = [
+  query('compte_id').isInt().withMessage('compte_id doit être un identifiant valide.'),
+  query('mois').optional().matches(/^\d{4}-\d{2}$/).withMessage('Format de mois invalide (attendu YYYY-MM).'),
+  query('categorie_id').optional().isInt().withMessage('categorie_id doit être un identifiant valide.'),
+];
+
+const validationCreationTransaction = [
+  body('date').isISO8601().withMessage('Date invalide.'),
+  body('montant').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('moyen_paiement').isIn(['CB', 'Virement', 'Especes', 'Prelevement', 'Cheque']).withMessage('Moyen de paiement invalide.'),
+  body('categorie_id').isInt().withMessage('categorie_id est requis et doit être un identifiant valide.'),
+  body('compte_id').isInt().withMessage('compte_id est requis et doit être un identifiant valide.'),
+  body('type_transaction').isIn(['depense', 'revenu']).withMessage('type_transaction invalide.'),
+];
+
+const validationModificationTransaction = [
+  ...validationIdParam,
+  body('montant').optional().isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('date').optional().isISO8601().withMessage('Date invalide.'),
+];
+
+const validationRetraitEpargne = [
+  body('date').isISO8601().withMessage('Date invalide.'),
+  body('montant').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('moyen_paiement').isIn(['CB', 'Virement', 'Especes', 'Prelevement', 'Cheque']).withMessage('Moyen de paiement invalide.'),
+  body('categorie_id').isInt().withMessage('categorie_id est requis.'),
+  body('compte_id').isInt().withMessage('compte_id est requis.'),
+  body('objectif_id').isInt().withMessage('objectif_id est requis.'),
+  body('montant_fleche').isInt({ gt: 0 }).withMessage('Le montant fléché doit être un entier supérieur à zéro.'),
+];
+
+const validationVirementEpargne = [
+  body('date').isISO8601().withMessage('Date invalide.'),
+  body('montant').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('compte_courant_id').isInt().withMessage('compte_courant_id est requis.'),
+  body('compte_epargne_id').isInt().withMessage('compte_epargne_id est requis.'),
+  body('objectif_id').optional({ nullable: true }).isInt().withMessage('objectif_id invalide.'),
+  body('montant_fleche').optional({ nullable: true }).isInt({ gt: 0 }).withMessage('montant_fleche doit être un entier supérieur à zéro.'),
+];
+
+const validationVirementVersCourant = [
+  body('date').isISO8601().withMessage('Date invalide.'),
+  body('montant').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('compte_epargne_id').isInt().withMessage('compte_epargne_id est requis.'),
+  body('compte_courant_id').isInt().withMessage('compte_courant_id est requis.'),
+  body('objectif_id').isInt().withMessage('objectif_id est requis.'),
+];
+
+const validationVirementEpargneVersEpargne = [
+  body('date').isISO8601().withMessage('Date invalide.'),
+  body('montant').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('compte_source_id').isInt().withMessage('compte_source_id est requis.'),
+  body('compte_dest_id').isInt().withMessage('compte_dest_id est requis.'),
+];
 
 // GET /transactions?compte_id=X - liste les transactions d'un compte donné
 /**
@@ -45,7 +106,7 @@ async function verifierAccesCompte(compteId, utilisateurId) {
  *       404:
  *         description: Compte introuvable
  */
-router.get('/', verifierToken, async (req, res, next) => {
+router.get('/', verifierToken, validationListe, gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, mois, categorie_id, recherche } = req.query;
 
@@ -144,7 +205,7 @@ router.get('/', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.post('/', verifierToken, async (req, res, next) => {
+router.post('/', verifierToken, validationCreationTransaction, gererErreursValidation, async (req, res, next) => {
   try {
     const {
       date, montant, description, moyen_paiement,
@@ -158,10 +219,6 @@ router.post('/', verifierToken, async (req, res, next) => {
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
       return res.status(404).json({ erreur: 'Compte introuvable.' });
-    }
-
-    if (montant <= 0) {
-      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
     }
 
     const resultat = await pool.query(
@@ -221,16 +278,12 @@ router.post('/', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Transaction introuvable
  */
-router.put('/:id', verifierToken, async (req, res, next) => {
+router.put('/:id', verifierToken, validationModificationTransaction, gererErreursValidation, async (req, res, next) => {
   try {
     const {
       date, montant, description, moyen_paiement,
       categorie_id, type_transaction, est_recurrente
     } = req.body;
-
-    if (montant !== undefined && montant <= 0) {
-      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
-    }
 
     const resultatExistant = await pool.query(
       'SELECT compte_id FROM transactions WHERE id = $1',
@@ -279,7 +332,7 @@ router.put('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Transaction introuvable
  */
-router.delete('/:id', verifierToken, async (req, res, next) => {
+router.delete('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const resultatExistant = await pool.query(
       'SELECT compte_id FROM transactions WHERE id = $1',
@@ -341,21 +394,13 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte ou objectif introuvable
  */
-router.post('/retrait-epargne', verifierToken, async (req, res, next) => {
+router.post('/retrait-epargne', verifierToken, validationRetraitEpargne, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const {
       date, montant, description, moyen_paiement,
       categorie_id, compte_id, objectif_id, montant_fleche
     } = req.body;
-
-    if (!date || !montant || !moyen_paiement || !categorie_id || !compte_id || !objectif_id || !montant_fleche) {
-      return res.status(400).json({ erreur: 'Tous les champs, y compris objectif_id, sont requis pour un retrait d\'épargne.' });
-    }
-
-    if (montant <= 0) {
-      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
-    }
 
     const acces = await client.query(
       `SELECT c.type_compte
@@ -449,21 +494,13 @@ router.post('/retrait-epargne', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte ou objectif introuvable
  */
-router.post('/virement-epargne', verifierToken, async (req, res, next) => {
+router.post('/virement-epargne', verifierToken, validationVirementEpargne, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const {
       date, montant, description, compte_courant_id,
       compte_epargne_id, objectif_id, montant_fleche
     } = req.body;
-
-    if (!date || !montant || !compte_courant_id || !compte_epargne_id) {
-      return res.status(400).json({ erreur: 'Champs obligatoires manquants.' });
-    }
-
-    if (montant <= 0) {
-      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
-    }
 
     const accesCourant = await client.query(
       `SELECT c.type_compte FROM comptes c
@@ -611,18 +648,10 @@ router.post('/virement-epargne', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte ou objectif introuvable
  */
-router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
+router.post('/virement-vers-courant', verifierToken, validationVirementVersCourant, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const { date, montant, description, compte_epargne_id, compte_courant_id, objectif_id } = req.body;
-
-    if (!date || !montant || !compte_epargne_id || !compte_courant_id || !objectif_id) {
-      return res.status(400).json({ erreur: 'Tous les champs, y compris objectif_id, sont requis pour ce virement.' });
-    }
-
-    if (montant <= 0) {
-      return res.status(400).json({ erreur: 'Le montant doit être supérieur à zéro.' });
-    }
 
     const accesEpargne = await client.query(
       `SELECT c.type_compte FROM comptes c
@@ -761,7 +790,7 @@ router.post('/virement-vers-courant', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte source ou destination introuvable
  */
-router.post('/virement-epargne-vers-epargne', verifierToken, async (req, res, next) => {
+router.post('/virement-epargne-vers-epargne', verifierToken, validationVirementEpargneVersEpargne, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const { date, montant, description, compte_source_id, compte_dest_id } = req.body;
@@ -854,7 +883,7 @@ router.post('/virement-epargne-vers-epargne', verifierToken, async (req, res, ne
  *       404:
  *         description: Transaction introuvable
  */
-router.patch('/:id/valider-simulation', verifierToken, async (req, res, next) => {
+router.patch('/:id/valider-simulation', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const resultatExistant = await pool.query(
       'SELECT compte_id, est_simulee FROM transactions WHERE id = $1',
