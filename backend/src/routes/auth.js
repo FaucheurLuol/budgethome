@@ -16,6 +16,34 @@ function poserCookieToken(res, token) {
   });
 }
 
+const { body } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
+
+const validationInscription = [
+  body('nom')
+    .trim()
+    .matches(/^[a-zA-ZÀ-ÿ\s'-]{2,50}$/)
+    .withMessage('Le nom doit contenir entre 2 et 50 caractères alphabétiques, espaces, apostrophes ou tirets.'),
+  body('email')
+    .isEmail()
+    .withMessage('Adresse email invalide.'),
+  body('mot_de_passe')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`])[A-Za-z\d!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`]{14,}$/)
+    .withMessage('Le mot de passe doit contenir au moins 14 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.'),
+];
+
+const validationConnexion = [
+  body('email').isEmail().withMessage('Adresse email invalide.'),
+  body('mot_de_passe').notEmpty().withMessage('Le mot de passe est requis.'),
+];
+
+const validationChangementMotDePasse = [
+  body('ancien_mot_de_passe').notEmpty().withMessage('L\'ancien mot de passe est requis.'),
+  body('nouveau_mot_de_passe')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`])[A-Za-z\d!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`]{14,}$/)
+    .withMessage('Le nouveau mot de passe doit contenir au moins 14 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.'),
+];
+
 // Inscription
 /**
  * @swagger
@@ -45,28 +73,9 @@ function poserCookieToken(res, token) {
  *       400:
  *         description: Validation échouée (nom, email ou mot de passe invalide)
  */
-router.post('/inscription', limiteurAuth, async (req, res, next) => {
+router.post('/inscription', limiteurAuth, validationInscription, gererErreursValidation, async (req, res, next) => {
   try {
     const { nom, email, mot_de_passe } = req.body;
-
-    if (!nom || !email || !mot_de_passe) {
-      return res.status(400).json({ erreur: 'Nom, email et mot de passe sont requis.' });
-    }
-
-    const nomRegex = /^[a-zA-ZÀ-ÿ\s'-]{2,50}$/;
-    if (!nomRegex.test(nom)) {
-      return res.status(400).json({ erreur: 'Le nom doit contenir entre 2 et 50 caractères alphabétiques, espaces, apostrophes ou tirets.' });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ erreur: 'Adresse email invalide.' });
-    }
-
-    const motDePasseRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`])[A-Za-z\d!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/~`]{14,}$/;
-    if (!motDePasseRegex.test(mot_de_passe)) {
-      return res.status(400).json({ erreur: 'Le mot de passe doit contenir au moins 14 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.' });
-    }
 
     const hash = await bcrypt.hash(mot_de_passe, 10);
 
@@ -116,7 +125,7 @@ router.post('/inscription', limiteurAuth, async (req, res, next) => {
  *       401:
  *         description: Email ou mot de passe incorrect
  */
-router.post('/connexion', limiteurAuth, async (req, res, next) => {
+router.post('/connexion', limiteurAuth, validationConnexion, gererErreursValidation, async (req, res, next) => {
   try {
     const { email, mot_de_passe } = req.body;
 
@@ -221,7 +230,7 @@ router.post('/deconnexion', (req, res) => {
  *       401:
  *         description: Ancien mot de passe incorrect
  */
-router.put('/mot-de-passe', verifierToken, async (req, res, next) => {
+router.put('/mot-de-passe', verifierToken, validationChangementMotDePasse, gererErreursValidation, async (req, res, next) => {
   try {
     const { ancien_mot_de_passe, nouveau_mot_de_passe } = req.body;
 
