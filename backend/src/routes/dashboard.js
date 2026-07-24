@@ -49,7 +49,6 @@ router.get('/soldes', verifierToken, async (req, res, next) => {
   }
 });
 
-// GET /dashboard/evolution-comptes-courants?mois=12 - solde de fin de mois, par compte courant
 /**
  * @swagger
  * /dashboard/evolution-comptes-courants:
@@ -73,46 +72,48 @@ router.get('/evolution-comptes-courants', verifierToken, [
   try {
     const nombreMois = parseInt(req.query.mois, 10) || 12;
 
-    const comptesCourants = await pool.query(
-      `SELECT c.id, c.nom, c.solde_initial
-       FROM comptes c
-       JOIN compte_utilisateurs cu ON cu.compte_id = c.id
-       WHERE cu.utilisateur_id = $1 AND c.type_compte = 'Compte courant' AND cu.est_archive = FALSE
-       ORDER BY c.nom`,
-      [req.utilisateur.id]
+    const resultat = await pool.query(
+      `WITH mois_serie AS (
+         SELECT generate_series(
+           date_trunc('month', CURRENT_DATE) - ($2::int - 1) * INTERVAL '1 month',
+           date_trunc('month', CURRENT_DATE),
+           INTERVAL '1 month'
+         )::date AS mois_debut
+       ),
+       comptes_courants AS (
+         SELECT c.id, c.nom, c.solde_initial
+         FROM comptes c
+         JOIN compte_utilisateurs cu ON cu.compte_id = c.id
+         WHERE cu.utilisateur_id = $1 AND c.type_compte = 'Compte courant' AND cu.est_archive = FALSE
+       )
+       SELECT
+         cc.id AS compte_id, cc.nom,
+         ms.mois_debut,
+         cc.solde_initial + COALESCE(SUM(
+           CASE WHEN t.type_transaction = 'revenu' THEN t.montant ELSE -t.montant END
+         ) FILTER (WHERE t.date < (ms.mois_debut + INTERVAL '1 month')), 0) AS solde
+       FROM comptes_courants cc
+       CROSS JOIN mois_serie ms
+       LEFT JOIN transactions t ON t.compte_id = cc.id AND t.est_simulee = FALSE
+       GROUP BY cc.id, cc.nom, cc.solde_initial, ms.mois_debut
+       ORDER BY cc.id, ms.mois_debut`,
+      [req.utilisateur.id, nombreMois]
     );
 
-    const resultat = [];
-    for (const compte of comptesCourants.rows) {
-      const points = [];
-      for (let i = nombreMois - 1; i >= 0; i--) {
-        const finMois = new Date();
-        finMois.setDate(1);
-        finMois.setMonth(finMois.getMonth() - i + 1);
-        const finMoisISO = finMois.toISOString().slice(0, 10);
-
-        const solde = await pool.query(
-          `SELECT COALESCE(SUM(
-             CASE WHEN type_transaction = 'revenu' THEN montant ELSE -montant END
-           ), 0) AS mouvement
-           FROM transactions
-           WHERE compte_id = $1 AND est_simulee = FALSE AND date < $2`,
-          [compte.id, finMoisISO]
-        );
-
-        const dateAffichage = new Date();
-        dateAffichage.setDate(1);
-        dateAffichage.setMonth(dateAffichage.getMonth() - i);
-
-        points.push({
-          mois: dateAffichage.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
-          solde: compte.solde_initial + Number(solde.rows[0].mouvement),
-        });
+    const parComptes = {};
+    resultat.rows.forEach((ligne) => {
+      if (!parComptes[ligne.compte_id]) {
+        parComptes[ligne.compte_id] = { compte_id: ligne.compte_id, nom: ligne.nom, points: [] };
       }
-      resultat.push({ compte_id: compte.id, nom: compte.nom, points });
-    }
+      const [annee, moisNum] = ligne.mois_debut.split('-').map(Number);
+      const dateAffichage = new Date(annee, moisNum - 1, 1);
+      parComptes[ligne.compte_id].points.push({
+        mois: dateAffichage.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
+        solde: Number(ligne.solde),
+      });
+    });
 
-    res.json(resultat);
+    res.json(Object.values(parComptes));
   } catch (erreur) {
     next(erreur);
   }
