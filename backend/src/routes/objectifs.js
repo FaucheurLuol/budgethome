@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { body, param } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -12,6 +14,21 @@ async function obtenirFoyerId(utilisateurId) {
 function clauseAcces(foyerId, alias = 'o') {
   return `(${alias}.foyer_id = $FOYER_ID OR (${alias}.utilisateur_id = $UTILISATEUR_ID AND ${alias}.foyer_id IS NULL))`;
 }
+
+const validationIdParam = [
+  param('id').isInt().withMessage('Identifiant invalide.'),
+];
+
+const validationObjectif = [
+  body('nom').trim().notEmpty().withMessage('Le nom est requis.'),
+  body('montant_cible').isInt({ gt: 0 }).withMessage('Le montant cible doit être un entier supérieur à zéro.'),
+];
+
+const validationAllocation = [
+  ...validationIdParam,
+  body('transaction_id').isInt().withMessage('transaction_id est requis.'),
+  body('montant_fleche').isInt({ gt: 0 }).withMessage('Le montant fléché doit être un entier supérieur à zéro.'),
+];
 
 // GET /objectifs - liste les objectifs accessibles (miens + communs de mon foyer)
 /**
@@ -79,13 +96,9 @@ router.get('/', verifierToken, async (req, res, next) => {
  *       400:
  *         description: Champs manquants, ou pas de foyer pour un objectif commun
  */
-router.post('/', verifierToken, async (req, res, next) => {
+router.post('/', verifierToken, validationObjectif, gererErreursValidation, async (req, res, next) => {
   try {
     const { nom, montant_cible, est_commun } = req.body;
-
-    if (!nom || !montant_cible) {
-      return res.status(400).json({ erreur: 'Nom et montant cible sont requis.' });
-    }
 
     let foyerId = null;
     if (est_commun) {
@@ -136,7 +149,7 @@ router.post('/', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Objectif introuvable
  */
-router.put('/:id', verifierToken, async (req, res, next) => {
+router.put('/:id', verifierToken, [...validationIdParam, ...validationObjectif], gererErreursValidation, async (req, res, next) => {
   try {
     const { nom, montant_cible } = req.body;
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
@@ -179,7 +192,7 @@ router.put('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Objectif introuvable
  */
-router.delete('/:id', verifierToken, async (req, res, next) => {
+router.delete('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
@@ -231,15 +244,11 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Objectif ou transaction introuvable
  */
-router.post('/:id/allocations', verifierToken, async (req, res, next) => {
+router.post('/:id/allocations', verifierToken, validationAllocation, gererErreursValidation, async (req, res, next) => {
   try {
     const { transaction_id, montant_fleche } = req.body;
     const objectifId = req.params.id;
-    const foyerId = await obtenirFoyerId(req.utilisateur.id);
-
-    if (!transaction_id || !montant_fleche) {
-      return res.status(400).json({ erreur: 'transaction_id et montant_fleche sont requis.' });
-    }
+    const foyerId = await obtenirFoyerId(req.utilisateur.id)
 
     const verifObjectif = await pool.query(
       'SELECT 1 FROM objectifs_epargne WHERE id = $1 AND (foyer_id = $2 OR (utilisateur_id = $3 AND foyer_id IS NULL))',
@@ -295,7 +304,7 @@ router.post('/:id/allocations', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Allocation introuvable
  */
-router.delete('/allocations/:id', verifierToken, async (req, res, next) => {
+router.delete('/allocations/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
@@ -371,7 +380,7 @@ router.get('/archives', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Objectif introuvable
  */
-router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
+router.patch('/:id/archiver', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
@@ -409,7 +418,7 @@ router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Objectif introuvable
  */
-router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
+router.patch('/:id/archiver', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
@@ -447,7 +456,7 @@ router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Objectif introuvable
  */
-router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
+router.delete('/:id/definitif', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
