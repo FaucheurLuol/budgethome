@@ -2,6 +2,8 @@ const express = require('express');
 const crypto = require('crypto');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { body } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -106,13 +108,11 @@ router.post('/', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Code d'invitation invalide
  */
-router.post('/rejoindre', verifierToken, async (req, res, next) => {
+router.post('/rejoindre', verifierToken, [
+  body('code').trim().notEmpty().withMessage('Le code d\'invitation est requis.'),
+], gererErreursValidation, async (req, res, next) => {
   try {
     const { code } = req.body;
-
-    if (!code) {
-      return res.status(400).json({ erreur: 'Le code d\'invitation est requis.' });
-    }
 
     const dejaDansFoyer = await pool.query('SELECT foyer_id FROM utilisateurs WHERE id = $1', [req.utilisateur.id]);
     if (dejaDansFoyer.rows[0].foyer_id) {
@@ -120,6 +120,7 @@ router.post('/rejoindre', verifierToken, async (req, res, next) => {
     }
 
     const foyer = await pool.query('SELECT id FROM foyers WHERE code_invitation = $1', [code.toUpperCase()]);
+    
     if (foyer.rows.length === 0) {
       return res.status(404).json({ erreur: 'Code d\'invitation invalide.' });
     }
