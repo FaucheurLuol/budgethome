@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { body, param, query } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -11,6 +13,21 @@ async function verifierAccesCompte(compteId, utilisateurId) {
   );
   return resultat.rows.length > 0;
 }
+
+const validationIdParam = [
+  param('id').isInt().withMessage('Identifiant invalide.'),
+];
+
+const validationRequeteCompteMois = [
+  query('compte_id').isInt().withMessage('compte_id doit être un identifiant valide.'),
+  query('mois').matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Format de mois invalide (attendu YYYY-MM-01).'),
+];
+
+const validationBudgetDefaut = [
+  body('compte_id').isInt().withMessage('compte_id est requis.'),
+  body('categorie_id').isInt().withMessage('categorie_id est requis.'),
+  body('montant_par_defaut').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+];
 
 // ---------- BUDGET PAR DÉFAUT ----------
 
@@ -33,7 +50,7 @@ async function verifierAccesCompte(compteId, utilisateurId) {
  *       404:
  *         description: Compte introuvable
  */
-router.get('/defaut', verifierToken, async (req, res, next) => {
+router.get('/defaut', verifierToken, [query('compte_id').isInt().withMessage('compte_id doit être un identifiant valide.')], gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id } = req.query;
 
@@ -87,13 +104,9 @@ router.get('/defaut', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.post('/defaut', verifierToken, async (req, res, next) => {
+router.post('/defaut', verifierToken, validationBudgetDefaut, gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, categorie_id, montant_par_defaut } = req.body;
-
-    if (!compte_id || !categorie_id || montant_par_defaut === undefined) {
-      return res.status(400).json({ erreur: 'compte_id, categorie_id et montant_par_defaut sont requis.' });
-    }
 
     const acces = await verifierAccesCompte(compte_id, req.utilisateur.id);
     if (!acces) {
@@ -139,7 +152,7 @@ router.post('/defaut', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Budget introuvable
  */
-router.put('/defaut/:id', verifierToken, async (req, res, next) => {
+router.put('/defaut/:id', verifierToken, [...validationIdParam, body('montant_par_defaut').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.')], gererErreursValidation, async (req, res, next) => {
   try {
     const { montant_par_defaut } = req.body;
 
@@ -183,7 +196,7 @@ router.put('/defaut/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Budget introuvable
  */
-router.delete('/defaut/:id', verifierToken, async (req, res, next) => {
+router.delete('/defaut/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const existant = await pool.query('SELECT compte_id FROM budget_defaut WHERE id = $1', [req.params.id]);
     if (existant.rows.length === 0) {
@@ -229,7 +242,7 @@ router.delete('/defaut/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.get('/mensuel', verifierToken, async (req, res, next) => {
+router.get('/mensuel', verifierToken, validationRequeteCompteMois, gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.query;
 
@@ -279,7 +292,10 @@ router.get('/mensuel', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.post('/mensuel/generer', verifierToken, async (req, res, next) => {
+router.post('/mensuel/generer', verifierToken, [
+  body('compte_id').isInt().withMessage('compte_id est requis.'),
+  body('mois').matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Format de mois invalide (attendu YYYY-MM-01).'),
+], gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.body;
 
@@ -333,7 +349,7 @@ router.post('/mensuel/generer', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.get('/mensuel/suivi', verifierToken, async (req, res, next) => {
+router.get('/mensuel/suivi', verifierToken, validationRequeteCompteMois, gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.query;
 
@@ -407,7 +423,7 @@ router.get('/mensuel/suivi', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.get('/solde-restant', verifierToken, async (req, res, next) => {
+router.get('/solde-restant', verifierToken, validationRequeteCompteMois, gererErreursValidation, async (req, res, next) => {
   try {
     const { compte_id, mois } = req.query;
 
@@ -509,7 +525,11 @@ router.get('/solde-restant', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Budget mensuel introuvable
  */
-router.put('/mensuel/:id', verifierToken, async (req, res, next) => {
+router.put('/mensuel/:id', verifierToken, [
+  ...validationIdParam,
+  body('montant').isInt({ gt: 0 }).withMessage('Le montant doit être un entier supérieur à zéro.'),
+  body('categorie_id').optional({ nullable: true }).isInt().withMessage('categorie_id invalide.'),
+], gererErreursValidation, async (req, res, next) => {
   try {
     const { montant, categorie_id } = req.body;
 
@@ -553,7 +573,7 @@ router.put('/mensuel/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Budget mensuel introuvable
  */
-router.delete('/mensuel/:id', verifierToken, async (req, res, next) => {
+router.delete('/mensuel/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const existant = await pool.query('SELECT compte_id FROM budget_mensuel WHERE id = $1', [req.params.id]);
     if (existant.rows.length === 0) {
