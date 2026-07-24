@@ -2,8 +2,25 @@ const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
 const { calculerRepartition } = require('../services/repartitionCompteCommun');
+const { body, param } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
+
+const validationIdParam = [
+  param('id').isInt().withMessage('Identifiant invalide.'),
+];
+
+const validationRepartition = [
+  body('revenus').isArray({ min: 1 }).withMessage('Au moins un revenu est nécessaire.'),
+  body('revenus.*.personne').notEmpty().withMessage('Chaque revenu doit préciser une personne.'),
+  body('revenus.*.montant').isInt({ gt: 0 }).withMessage('Chaque montant de revenu doit être un entier supérieur à zéro.'),
+  body('depenses').isArray({ min: 1 }).withMessage('Au moins une dépense est nécessaire.'),
+  body('depenses.*.nom').notEmpty().withMessage('Chaque dépense doit avoir un nom.'),
+  body('depenses.*.montant').isInt({ gt: 0 }).withMessage('Chaque montant de dépense doit être un entier supérieur à zéro.'),
+  body('mois').matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Format de mois invalide (attendu YYYY-MM-01).'),
+];
+
 
 // POST /repartition - calcule et sauvegarde une simulation
 /**
@@ -51,13 +68,9 @@ const router = express.Router();
  *       400:
  *         description: Moins de 2 personnes, aucune dépense, ou revenu total nul
  */
-router.post('/', verifierToken, async (req, res, next) => {
+router.post('/', verifierToken, validationRepartition, gererErreursValidation, async (req, res, next) => {
   try {
     const { revenus, depenses, mois } = req.body;
-
-    if (!revenus || !depenses || !mois) {
-      return res.status(400).json({ erreur: 'revenus, depenses et mois sont requis.' });
-    }
 
     const resultat = calculerRepartition(revenus, depenses);
 
@@ -169,7 +182,7 @@ router.get('/active', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Répartition introuvable
  */
-router.patch('/:id/activer', verifierToken, async (req, res, next) => {
+router.patch('/:id/activer', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const verif = await client.query('SELECT 1 FROM repartitions_communes WHERE id = $1', [req.params.id]);
@@ -213,7 +226,7 @@ router.patch('/:id/activer', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Répartition introuvable
  */
-router.delete('/:id', verifierToken, async (req, res, next) => {
+router.delete('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const verif = await pool.query('SELECT 1 FROM repartitions_communes WHERE id = $1', [req.params.id]);
     if (verif.rows.length === 0) {
