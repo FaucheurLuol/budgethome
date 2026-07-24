@@ -14,6 +14,8 @@ import Modeles from './pages/Modeles';
 import Repartition from './pages/Repartition';
 import Archives from './pages/Archives';
 import Profil from './pages/Profil';
+import MentionsLegales from './pages/MentionsLegales';
+import Confidentialite from './pages/Confidentialite';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/" element={<Accueil />} />
         <Route path="/connexion" element={<Connexion />} />
         <Route path="/inscription" element={<Inscription />} />
+        <Route path="/mentions-legales" element={<MentionsLegales />} />
+        <Route path="/confidentialite" element={<Confidentialite />} />
         <Route
           path="/dashboard"
           element={
