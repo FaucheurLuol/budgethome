@@ -23,6 +23,7 @@ const utilisateursRoutes = require('./routes/utilisateurs');
 const modelesRoutes = require('./routes/modeles');
 const dashboardRoutes = require('./routes/dashboard');
 const foyersRoutes = require('./routes/foyers');
+const rgpdRoutes = require('./routes/rgpd');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -54,6 +55,7 @@ app.use('/utilisateurs', utilisateursRoutes);
 app.use('/modeles', modelesRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/foyers', foyersRoutes);
+app.use('/rgpd', rgpdRoutes);
 
 app.use(
   '/api-docs',
