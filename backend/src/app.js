@@ -25,6 +25,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const foyersRoutes = require('./routes/foyers');
 
 const app = express();
+app.set('trust proxy', 1);
 
 const basicAuth = require('express-basic-auth');
 const swaggerUi = require('swagger-ui-express');
@@ -39,6 +40,7 @@ app.use(cors({
   origin: originesAutorisees,
   credentials: true,
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 app.use('/auth', authRoutes);
