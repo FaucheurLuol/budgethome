@@ -1,6 +1,8 @@
 const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { query } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -65,7 +67,9 @@ router.get('/soldes', verifierToken, async (req, res, next) => {
  *       200:
  *         description: Points d'évolution par compte courant
  */
-router.get('/evolution-comptes-courants', verifierToken, async (req, res, next) => {
+router.get('/evolution-comptes-courants', verifierToken, [
+  query('mois').optional().isInt({ min: 1, max: 60 }).withMessage('Le paramètre mois doit être un entier entre 1 et 60.'),
+], gererErreursValidation, async (req, res, next) => {
   try {
     const nombreMois = parseInt(req.query.mois, 10) || 12;
 
@@ -145,13 +149,13 @@ router.get('/evolution-comptes-courants', verifierToken, async (req, res, next) 
  *       400:
  *         description: Paramètres type/periode invalides
  */
-router.get('/repartition', verifierToken, async (req, res, next) => {
+router.get('/repartition', verifierToken, [
+  query('type').isIn(['depense', 'revenu']).withMessage('Le paramètre type doit être "depense" ou "revenu".'),
+  query('periode').isIn(['mois', 'annee']).withMessage('Le paramètre periode doit être "mois" ou "annee".'),
+  query('compte_id').optional().isInt().withMessage('compte_id doit être un identifiant valide.'),
+], gererErreursValidation, async (req, res, next) => {
   try {
     const { type, periode, compte_id } = req.query;
-
-    if (!['depense', 'revenu'].includes(type) || !['mois', 'annee'].includes(periode)) {
-      return res.status(400).json({ erreur: 'Paramètres type/periode invalides.' });
-    }
 
     const maintenant = new Date();
     let dateDebut;
