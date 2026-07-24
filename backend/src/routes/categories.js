@@ -198,7 +198,7 @@ router.put('/:id', verifierToken, [...validationIdParam, ...validationCategorie]
  *       409:
  *         description: Des transactions/modèles utilisent encore cette catégorie
  */
-router.delete('/:id', verifierToken, async (req, res, next) => {
+router.delete('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const foyerId = await obtenirFoyerId(req.utilisateur.id);
 
