@@ -1,8 +1,27 @@
 const express = require('express');
 const pool = require('../db');
 const verifierToken = require('../middleware/auth');
+const { body, param } = require('express-validator');
+const gererErreursValidation = require('../middleware/validation');
 
 const router = express.Router();
+
+const validationCreationCompte = [
+  body('nom').trim().notEmpty().withMessage('Le nom du compte est requis.'),
+  body('type_compte')
+    .isIn(['Compte courant', 'Livret A', 'PEL', 'LDD', 'Action', 'Crypto'])
+    .withMessage('Type de compte invalide.'),
+  body('solde_initial').isInt().withMessage('Le solde initial doit être un nombre entier (en centimes).'),
+];
+
+const validationIdParam = [
+  param('id').isInt().withMessage('Identifiant invalide.'),
+];
+
+const validationInvitation = [
+  ...validationIdParam,
+  body('utilisateur_id').isInt().withMessage('Identifiant utilisateur invalide.'),
+]
 
 // GET /comptes - liste les comptes visibles par l'utilisateur connecté (non archivés par lui)
 /**
@@ -79,7 +98,7 @@ router.get('/archives', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.get('/:id', verifierToken, async (req, res, next) => {
+router.get('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const resultat = await pool.query(
       `SELECT c.*
@@ -120,7 +139,7 @@ router.get('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.post('/:id/quitter', verifierToken, async (req, res, next) => {
+router.post('/:id/quitter', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const proprietaires = await pool.query(
       'SELECT COUNT(*) AS total FROM compte_utilisateurs WHERE compte_id = $1',
@@ -175,7 +194,7 @@ router.post('/:id/quitter', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.post('/:id/inviter', verifierToken, async (req, res, next) => {
+router.post('/:id/inviter', verifierToken, validationInvitation, gererErreursValidation, async (req, res, next) => {
   try {
     const { utilisateur_id } = req.body;
 
@@ -256,14 +275,10 @@ router.post('/:id/inviter', verifierToken, async (req, res, next) => {
  *       201:
  *         description: Compte créé
  */
-router.post('/', verifierToken, async (req, res, next) => {
+router.post('/', verifierToken, validationCreationCompte, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const { nom, type_compte, solde_initial, partage, utilisateurs_associes } = req.body;
-
-    if (!nom || !type_compte || solde_initial === undefined) {
-      return res.status(400).json({ erreur: 'Nom, type de compte et solde initial sont requis.' });
-    }
 
     await client.query('BEGIN');
 
@@ -325,7 +340,7 @@ router.post('/', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.put('/:id', verifierToken, async (req, res, next) => {
+router.put('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const { nom, type_compte } = req.body;
 
@@ -367,7 +382,7 @@ router.put('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
+router.patch('/:id/archiver', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const resultat = await pool.query(
       'UPDATE compte_utilisateurs SET est_archive = TRUE WHERE compte_id = $1 AND utilisateur_id = $2 RETURNING *',
@@ -401,7 +416,7 @@ router.patch('/:id/archiver', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
+router.patch('/:id/desarchiver', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const resultat = await pool.query(
       'UPDATE compte_utilisateurs SET est_archive = FALSE WHERE compte_id = $1 AND utilisateur_id = $2 RETURNING *',
@@ -436,7 +451,7 @@ router.patch('/:id/desarchiver', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.patch('/:id/favori', verifierToken, async (req, res, next) => {
+router.patch('/:id/favori', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const verifAcces = await pool.query(
       'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
@@ -478,7 +493,7 @@ router.patch('/:id/favori', verifierToken, async (req, res, next) => {
  *       409:
  *         description: Des transactions existent encore
  */
-router.delete('/:id', verifierToken, async (req, res, next) => {
+router.delete('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const verifAcces = await pool.query(
       'SELECT 1 FROM compte_utilisateurs WHERE compte_id = $1 AND utilisateur_id = $2',
@@ -516,7 +531,7 @@ router.delete('/:id', verifierToken, async (req, res, next) => {
  *       404:
  *         description: Compte introuvable
  */
-router.delete('/:id/definitif', verifierToken, async (req, res, next) => {
+router.delete('/:id/definitif', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   const client = await pool.connect();
   try {
     const verifAcces = await client.query(
