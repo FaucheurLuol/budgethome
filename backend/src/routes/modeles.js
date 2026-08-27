@@ -325,10 +325,15 @@ router.put('/:id', verifierToken, [...validationIdParam, ...validationModele], g
     } = req.body;
 
     const existant = await pool.query(
-      'SELECT compte_id FROM modeles_transactions WHERE id = $1 AND utilisateur_id = $2',
-      [req.params.id, req.utilisateur.id]
+      'SELECT compte_id FROM modeles_transactions WHERE id = $1',
+      [req.params.id]
     );
     if (existant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Modèle introuvable.' });
+    }
+
+    const acces = await verifierAccesCompte(existant.rows[0].compte_id, req.utilisateur.id);
+    if (!acces) {
       return res.status(404).json({ erreur: 'Modèle introuvable.' });
     }
 
@@ -373,10 +378,15 @@ router.put('/:id', verifierToken, [...validationIdParam, ...validationModele], g
 router.delete('/:id', verifierToken, validationIdParam, gererErreursValidation, async (req, res, next) => {
   try {
     const existant = await pool.query(
-      'SELECT 1 FROM modeles_transactions WHERE id = $1 AND utilisateur_id = $2',
-      [req.params.id, req.utilisateur.id]
+      'SELECT compte_id FROM modeles_transactions WHERE id = $1',
+      [req.params.id]
     );
     if (existant.rows.length === 0) {
+      return res.status(404).json({ erreur: 'Modèle introuvable.' });
+    }
+
+    const acces = await verifierAccesCompte(existant.rows[0].compte_id, req.utilisateur.id);
+    if (!acces) {
       return res.status(404).json({ erreur: 'Modèle introuvable.' });
     }
 
