@@ -27,6 +27,7 @@ const validationModele = [
   body('est_virement_epargne').optional().isBoolean().withMessage('est_virement_epargne doit être un booléen.'),
   body('compte_epargne_id').optional({ nullable: true }).isInt().withMessage('compte_epargne_id invalide.'),
   body('objectif_id').optional({ nullable: true }).isInt().withMessage('objectif_id invalide.'),
+  body('jour_du_mois').optional({ nullable: true }).isInt({ min: 1, max: 31 }).withMessage('Le jour du mois doit être compris entre 1 et 31.'),
 ];
 
 const validationVirementCompteCommun = [
@@ -130,6 +131,10 @@ router.get('/', verifierToken, [query('compte_id').isInt().withMessage('compte_i
  *               objectif_id:
  *                 type: integer
  *                 nullable: true
+ *               jour_du_mois:
+ *                 type: integer
+ *                 nullable: true
+ *                 description: Jour du mois (1-31) pour pré-remplir automatiquement la date à l'application du modèle
  *     responses:
  *       201:
  *         description: Modèle créé
@@ -140,7 +145,7 @@ router.post('/', verifierToken, validationModele, gererErreursValidation, async 
   try {
     const {
       compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement,
-      est_virement_epargne, compte_epargne_id, objectif_id
+      est_virement_epargne, compte_epargne_id, objectif_id, jour_du_mois
     } = req.body;
 
     if (!est_virement_epargne && !categorie_id) {
@@ -173,13 +178,13 @@ router.post('/', verifierToken, validationModele, gererErreursValidation, async 
     const resultat = await pool.query(
       `INSERT INTO modeles_transactions
        (utilisateur_id, compte_id, nom, categorie_id, montant, type_transaction, moyen_paiement,
-        est_virement_epargne, compte_epargne_id, objectif_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        est_virement_epargne, compte_epargne_id, objectif_id, jour_du_mois)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         req.utilisateur.id, compte_id, nom, categorie_id || null, montant || null,
         type_transaction, moyen_paiement || null,
-        est_virement_epargne || false, compte_epargne_id || null, objectif_id || null
+        est_virement_epargne || false, compte_epargne_id || null, objectif_id || null, jour_du_mois || null
       ]
     );
 
@@ -311,6 +316,10 @@ router.post('/virement-compte-commun', verifierToken, validationVirementCompteCo
  *               objectif_id:
  *                 type: integer
  *                 nullable: true
+ *               jour_du_mois:
+ *                 type: integer
+ *                 nullable: true
+ *                 description: Jour du mois (1-31) pour pré-remplir automatiquement la date à l'application du modèle
  *     responses:
  *       200:
  *         description: Modèle modifié
@@ -321,7 +330,7 @@ router.put('/:id', verifierToken, [...validationIdParam, ...validationModele], g
   try {
     const {
       nom, categorie_id, montant, type_transaction, moyen_paiement,
-      est_virement_epargne, compte_epargne_id, objectif_id
+      est_virement_epargne, compte_epargne_id, objectif_id, jour_du_mois
     } = req.body;
 
     const existant = await pool.query(
@@ -340,12 +349,12 @@ router.put('/:id', verifierToken, [...validationIdParam, ...validationModele], g
     const resultat = await pool.query(
       `UPDATE modeles_transactions
        SET nom = $1, categorie_id = $2, montant = $3, type_transaction = $4, moyen_paiement = $5,
-           est_virement_epargne = $6, compte_epargne_id = $7, objectif_id = $8
-       WHERE id = $9
+           est_virement_epargne = $6, compte_epargne_id = $7, objectif_id = $8, jour_du_mois = $9
+       WHERE id = $10
        RETURNING *`,
       [
         nom, categorie_id || null, montant || null, type_transaction, moyen_paiement || null,
-        est_virement_epargne || false, compte_epargne_id || null, objectif_id || null,
+        est_virement_epargne || false, compte_epargne_id || null, objectif_id || null, jour_du_mois || null,
         req.params.id
       ]
     );

@@ -26,6 +26,7 @@ function Modeles() {
   const [moyenPaiement, setMoyenPaiement] = useState('');
   const [compteEpargneId, setCompteEpargneId] = useState('');
   const [objectifId, setObjectifId] = useState('');
+  const [jourDuMois, setJourDuMois] = useState('');
 
   useEffect(() => {
     async function chargerInit() {
@@ -85,6 +86,7 @@ function Modeles() {
       setCategorieId(String(modele.categorie_id));
       setTypeTransaction(modele.type_transaction);
     }
+    setJourDuMois(modele.jour_du_mois ? String(modele.jour_du_mois) : '');
     formulaireRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
@@ -97,6 +99,7 @@ function Modeles() {
     setEstVirementEpargne(false);
     setCompteEpargneId('');
     setObjectifId('');
+    setJourDuMois('');
   }
 
   const categoriesFiltrees = aplatirPourSelect(categories.filter((c) => c.type_categorie === typeTransaction));
@@ -129,6 +132,7 @@ function Modeles() {
         est_virement_epargne: estVirementEpargne,
         compte_epargne_id: estVirementEpargne ? Number(compteEpargneId) : null,
         objectif_id: objectifId ? Number(objectifId) : null,
+        jour_du_mois: jourDuMois ? Number(jourDuMois) : null,
       };
 
       if (modeleEnEdition) {
@@ -188,6 +192,7 @@ function Modeles() {
               <span className="carte-detail">{categories.find((c) => c.id === m.categorie_id)?.nom || '—'}</span>
             )}
             {m.montant && <span className="carte-montant">{(m.montant / 100).toFixed(2)} €</span>}
+            {m.jour_du_mois && <span className="carte-detail">Le {m.jour_du_mois} du mois</span>}
           </li>
         ))}
       </ul>
@@ -264,6 +269,17 @@ function Modeles() {
           min="0.01"
           value={montant}
           onChange={(e) => setMontant(e.target.value)}
+        />
+
+        <label htmlFor="jour_du_mois">Jour du mois (optionnel) :</label>
+        <input
+          id="jour_du_mois"
+          type="number"
+          min="1"
+          max="31"
+          value={jourDuMois}
+          onChange={(e) => setJourDuMois(e.target.value)}
+          placeholder="Ex: 5 pour le 5 de chaque mois"
         />
 
         <button className="btn-primary" type="submit">

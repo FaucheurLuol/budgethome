@@ -34,6 +34,15 @@ function ligneVide() {
   };
 }
 
+function calculerDatePourModele(jourDuMois) {
+  if (!jourDuMois) return new Date().toISOString().slice(0, 10);
+  const maintenant = new Date();
+  const dernierJourDuMois = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 0).getDate();
+  const jour = Math.min(jourDuMois, dernierJourDuMois);
+  const date = new Date(maintenant.getFullYear(), maintenant.getMonth(), jour);
+  return date.toISOString().slice(0, 10);
+}
+
 function Transactions() {
   const [comptes, setComptes] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -364,11 +373,12 @@ function Transactions() {
     });
   }
 
-  function appliquerModele(modele) {
-    if (modele.est_virement_epargne) {
-      setNouvelleLigne((precedent) => ({
-        ...precedent,
-        description: modele.nom,
+ function appliquerModele(modele) {
+  if (modele.est_virement_epargne) {
+    setNouvelleLigne((precedent) => ({
+      ...precedent,
+      date: calculerDatePourModele(modele.jour_du_mois),
+      description: modele.nom,
         type_transaction: 'depense',
         montant: modele.montant ? (modele.montant / 100).toFixed(2) : precedent.montant,
         est_virement_epargne: true,
@@ -383,6 +393,7 @@ function Transactions() {
 
     setNouvelleLigne((precedent) => ({
       ...precedent,
+      date: calculerDatePourModele(modele.jour_du_mois),
       categorie_id: String(modele.categorie_id),
       type_transaction: modele.type_transaction,
       montant: modele.montant ? (modele.montant / 100).toFixed(2) : precedent.montant,
